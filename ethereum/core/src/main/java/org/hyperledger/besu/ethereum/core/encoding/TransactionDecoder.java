@@ -67,6 +67,7 @@ public class TransactionDecoder {
 
   public static Transaction decodeForWire(
       final RLPInput rlpInput, final boolean goQuorumCompatibilityMode) {
+    System.out.println("[METHOD]: decodeForWire");
     if (rlpInput.nextIsList()) {
       return decodeFrontier(rlpInput, goQuorumCompatibilityMode);
     } else {
@@ -78,11 +79,13 @@ public class TransactionDecoder {
   }
 
   public static Transaction decodeOpaqueBytes(final Bytes input) {
+    System.out.println("[METHOD]: decodeOpaqueBytes1");
     return decodeOpaqueBytes(input, GoQuorumOptions.getGoQuorumCompatibilityMode());
   }
 
   public static Transaction decodeOpaqueBytes(
       final Bytes input, final boolean goQuorumCompatibilityMode) {
+    System.out.println("[METHOD]: decodeOpaqueBytes2");
     final TransactionType transactionType;
     try {
       transactionType = TransactionType.of(input.get(0));
@@ -100,6 +103,7 @@ public class TransactionDecoder {
   }
 
   static Transaction decodeFrontier(final RLPInput input, final boolean goQuorumCompatibilityMode) {
+    System.out.println("[METHOD]: decodeFrontier");
     input.enterList();
     final Transaction.Builder builder =
         Transaction.builder()
@@ -112,15 +116,19 @@ public class TransactionDecoder {
             .payload(input.readBytes());
 
     final BigInteger v = input.readBigIntegerScalar();
+    System.out.println("[v]: " + v.toString());
     final byte recId;
     Optional<BigInteger> chainId = Optional.empty();
     if (goQuorumCompatibilityMode
         && GoQuorumPrivateTransactionDetector.isGoQuorumPrivateTransactionV(v)) {
+      System.out.println("[decodeFrontier]: isGoQuorumPrivateTransactionV");
       builder.v(v);
       recId = v.subtract(GO_QUORUM_PRIVATE_TRANSACTION_V_VALUE_MIN).byteValueExact();
     } else if (v.equals(REPLAY_UNPROTECTED_V_BASE) || v.equals(REPLAY_UNPROTECTED_V_BASE_PLUS_1)) {
+      System.out.println("[decodeFrontier]: REPLAY_UNPROTECTED_V_BASE: " + REPLAY_UNPROTECTED_V_BASE);
       recId = v.subtract(REPLAY_UNPROTECTED_V_BASE).byteValueExact();
     } else if (v.compareTo(REPLAY_PROTECTED_V_MIN) > 0) {
+      System.out.println("[decodeFrontier]: REPLAY_PROTECTED_V_MIN: " + REPLAY_PROTECTED_V_MIN);
       chainId = Optional.of(v.subtract(REPLAY_PROTECTED_V_BASE).divide(TWO));
       recId = v.subtract(TWO.multiply(chainId.get()).add(REPLAY_PROTECTED_V_BASE)).byteValueExact();
     } else {

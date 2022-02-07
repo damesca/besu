@@ -572,6 +572,7 @@ public class Transaction
 
   @Override
   public BigInteger getV() {
+    System.out.println("[METHOD]: Transaction.getV()");
     if (this.v.isPresent()) {
       return this.v.get();
     }

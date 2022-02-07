@@ -375,6 +375,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
    */
   @Override
   public Bytes getPrivateFrom() {
+    System.out.println("[getPrivateFrom]: " + privateFrom);
     return privateFrom;
   }
 
@@ -385,6 +386,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
    */
   @Override
   public Optional<List<Bytes>> getPrivateFor() {
+    System.out.println("[getPrivateFor]: " + privateFor);
     return privateFor;
   }
 
