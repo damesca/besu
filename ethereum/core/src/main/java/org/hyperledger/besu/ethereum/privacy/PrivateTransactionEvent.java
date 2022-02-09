@@ -20,6 +20,7 @@ public class PrivateTransactionEvent {
   private final String privacyUserId;
 
   public PrivateTransactionEvent(final String privacyGroupId, final String privacyUserId) {
+    /*LOG*/System.out.println("[PrivateTransactionEvent]");
     this.privacyGroupId = privacyGroupId;
     this.privacyUserId = privacyUserId;
   }

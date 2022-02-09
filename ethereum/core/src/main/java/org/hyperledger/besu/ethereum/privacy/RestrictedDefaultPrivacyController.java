@@ -116,8 +116,9 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
       final PrivateTransaction privateTransaction,
       final String privacyUserId,
       final Optional<PrivacyGroup> maybePrivacyGroup) {
+    /*LOG*/System.out.println("[RestrictedDefaultPrivacyController] sendRequest()");
     final BytesValueRLPOutput rlpOutput = new BytesValueRLPOutput();
-
+    
     if (maybePrivacyGroup.isPresent()) {
       final PrivacyGroup privacyGroup = maybePrivacyGroup.get();
       if (privacyGroup.getType() == PrivacyGroup.Type.PANTHEON) {
@@ -142,8 +143,14 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
     if (privateFor.isEmpty()) {
       privateFor.add(privateTransaction.getPrivateFrom().toBase64String());
     }
+    //TODO: fix writeTo()
     privateTransaction.writeTo(rlpOutput);
     final String payload = rlpOutput.encoded().toBase64String();
+
+    //TODO: rlpOutput is not the same as rlpInput
+    final String test = rlpOutput.encoded().toHexString();
+    /*LOG*/System.out.println("[RestrictedDefaultPrivacyController] rlpOutput");
+    /*LOG*/System.out.println(test);
 
     return enclave.send(payload, privateTransaction.getPrivateFrom().toBase64String(), privateFor);
   }

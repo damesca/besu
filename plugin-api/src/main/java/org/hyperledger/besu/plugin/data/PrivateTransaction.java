@@ -139,4 +139,11 @@ public interface PrivateTransaction {
    * @return privacy restriction unrestricted/restricted
    */
   Restriction getRestriction();
+
+  /**
+   * Returns the variable which remains oblivious for the receiver
+   *
+   * @return the variable which remains oblivious for the receiver
+   */
+  Bytes getOtVar();
 }
