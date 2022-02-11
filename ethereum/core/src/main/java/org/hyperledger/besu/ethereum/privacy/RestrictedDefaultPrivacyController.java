@@ -116,14 +116,16 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
       final PrivateTransaction privateTransaction,
       final String privacyUserId,
       final Optional<PrivacyGroup> maybePrivacyGroup) {
-    /*LOG*/System.out.println("[RestrictedDefaultPrivacyController] sendRequest()");
+    LOG.info("sendRequest");
     final BytesValueRLPOutput rlpOutput = new BytesValueRLPOutput();
     
     if (maybePrivacyGroup.isPresent()) {
       final PrivacyGroup privacyGroup = maybePrivacyGroup.get();
       if (privacyGroup.getType() == PrivacyGroup.Type.PANTHEON) {
         // offchain privacy group
-        privateTransaction.writeTo(rlpOutput);
+        // DONE: privateWriteTo is used to omit otVar (with private info) in the rlpOutput which is sent
+        privateTransaction.privateWriteTo(rlpOutput);
+        LOG.info("privateWriteTo(rlpOutput), rlpOutput={}", rlpOutput.encoded().toHexString());
         return enclave.send(
             rlpOutput.encoded().toBase64String(),
             privacyUserId,
@@ -143,14 +145,10 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
     if (privateFor.isEmpty()) {
       privateFor.add(privateTransaction.getPrivateFrom().toBase64String());
     }
-    //TODO: fix writeTo()
-    privateTransaction.writeTo(rlpOutput);
+    privateTransaction.privateWriteTo(rlpOutput);
     final String payload = rlpOutput.encoded().toBase64String();
 
-    //TODO: rlpOutput is not the same as rlpInput
-    final String test = rlpOutput.encoded().toHexString();
-    /*LOG*/System.out.println("[RestrictedDefaultPrivacyController] rlpOutput");
-    /*LOG*/System.out.println(test);
+    LOG.info("privateWriteTo(rlpOutput), rlpOutput={}", rlpOutput.encoded().toHexString());
 
     return enclave.send(payload, privateTransaction.getPrivateFrom().toBase64String(), privateFor);
   }

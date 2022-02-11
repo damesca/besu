@@ -152,8 +152,6 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
 
   @SuppressWarnings({"unchecked"})
   public static PrivateTransaction readFrom(final RLPInput input) throws RLPException {
-    /*LOG*/ System.out.println("[PrivateTransaction] readFrom(RLPInput input)");
-    /*LOG*/ System.out.println(input.raw());
     input.enterList();
 
     final Builder builder =
@@ -186,8 +184,6 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
     final Restriction restriction = convertToEnum(input.readBytes());
 
     final Bytes otVar = input.readBytes();
-    /*LOG*/System.out.println("[readFrom] read otVar");
-    /*LOG*/System.out.println(otVar);
     
     input.leaveList();
 
@@ -411,9 +407,9 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
    * @return the variable which remains oblivious for the receiver
    */
   @Override
-   public Bytes getOtVar() {
-     return otVar;
-   }
+  public Bytes getOtVar() {
+    return otVar;
+  }
 
   /**
    * Returns the enclave privacy group id.
@@ -510,6 +506,42 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
     return out;
   }
 
+  /**
+   * Writes the transaction to RLP without otVar (private content)
+   * 
+   * @param out the output to write the transaction to
+   */
+
+  public void privateWriteTo(final RLPOutput out) {
+    out.writeRLPBytes(privateSerialize(this).encoded());
+  }
+
+  public static BytesValueRLPOutput privateSerialize(
+      final org.hyperledger.besu.plugin.data.PrivateTransaction t) {
+    final BytesValueRLPOutput out = new BytesValueRLPOutput();
+    out.startList();
+
+    out.writeLongScalar(t.getNonce());
+    out.writeUInt256Scalar((Wei) t.getGasPrice());
+    out.writeLongScalar(t.getGasLimit());
+    out.writeBytes(t.getTo().isPresent() ? t.getTo().get() : Bytes.EMPTY);
+    out.writeUInt256Scalar((Wei) t.getValue());
+    out.writeBytes(t.getPayload());
+    out.writeBigIntegerScalar(t.getV());
+    out.writeBigIntegerScalar(t.getR());
+    out.writeBigIntegerScalar(t.getS());
+    out.writeBytes(t.getPrivateFrom());
+    t.getPrivateFor()
+        .ifPresent(privateFor -> out.writeList(privateFor, (bv, rlpO) -> rlpO.writeBytes(bv)));
+    t.getPrivacyGroupId().ifPresent(out::writeBytes);
+    out.writeBytes(t.getRestriction().getBytes());
+    //DONE: otVar is set to 0 meaning (used, but private)
+    out.writeBytes(Bytes.wrap(new byte[]{(byte)0x00}));
+
+    out.endList();
+    return out;
+  }
+
   @Override
   public BigInteger getR() {
     return signature.getR();
@@ -591,6 +623,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
       final Optional<Bytes> privacyGroupId,
       final Bytes restriction,
       final Bytes otVar) {
+    // otVar is excluded from the hash (and signature). In the future, there will be 2 variables and one will be included
+    LOG.info("otVar={}", otVar.toString());
     return keccak256(
         RLP.encode(
             out -> {
@@ -610,7 +644,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
               privateFor.ifPresent(pF -> out.writeList(pF, (bv, rlpO) -> rlpO.writeBytes(bv)));
               privacyGroupId.ifPresent(out::writeBytes);
               out.writeBytes(restriction);
-              out.writeBytes(otVar);
+              //out.writeBytes(otVar);
               out.endList();
             }));
   }

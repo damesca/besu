@@ -69,6 +69,7 @@ public class RestrictedFlexibleEeaSendRawTransaction extends AbstractEeaSendRawT
       final Address sender,
       final PrivateTransaction privateTransaction,
       final Optional<User> user) {
+    /*LOG*/System.out.println("[RestrictedFlexibleEeaSendRawTransaction] createPrivateMarkerTransaction");
     final Optional<Bytes> maybePrivacyGroupId = privateTransaction.getPrivacyGroupId();
     if (maybePrivacyGroupId.isEmpty()) {
       throw new JsonRpcErrorResponseException(JsonRpcError.FLEXIBLE_PRIVACY_GROUP_ID_NOT_AVAILABLE);

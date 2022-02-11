@@ -76,7 +76,6 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
         privacyParameters.getPrivateStateRootResolver(),
         privacyParameters.getPrivateStateGenesisAllocator(),
         name);
-    /*LOG*/ System.out.println("[PrivacyPrecompiledContract] constructor");
   }
 
   protected PrivacyPrecompiledContract(
@@ -91,7 +90,6 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
     this.privateWorldStateArchive = worldStateArchive;
     this.privateStateRootResolver = privateStateRootResolver;
     this.privateStateGenesisAllocator = privateStateGenesisAllocator;
-    /*LOG*/ System.out.println("[PrivacyPrecompiledContract] constructor2");
   }
 
   public void setPrivateTransactionProcessor(
@@ -107,7 +105,7 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   @Override
   public Bytes compute(final Bytes input, final MessageFrame messageFrame) {
 
-    /*LOG*/ System.out.println("[PrivacyPrecompiledContract] compute");
+    LOG.info("compute");
 
     if (skipContractExecution(messageFrame)) {
       return Bytes.EMPTY;
@@ -242,7 +240,7 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
       final Bytes32 privacyGroupId,
       final WorldUpdater privateWorldStateUpdater) {
 
-    /*LOG*/ System.out.println("[PrivacyPrecompiledContract] processPrivateTransaction");
+    LOG.info("processPrivateTransaction");
 
     return privateTransactionProcessor.processTransaction(
         messageFrame.getWorldUpdater(),
@@ -259,7 +257,7 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   ReceiveResponse getReceiveResponse(final String key) {
     final ReceiveResponse receiveResponse;
     try {
-      /*LOG*/System.out.println("[PrivacyPrecompiledContract] enclave.receive()");
+      LOG.info("enclave.receive()");
       receiveResponse = enclave.receive(key);
     } catch (final EnclaveServerException e) {
       throw new IllegalStateException(

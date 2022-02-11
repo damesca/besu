@@ -35,7 +35,13 @@ import java.util.Optional;
 import io.vertx.ext.auth.User;
 import org.apache.tuweni.bytes.Bytes;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class RestrictedOffchainEeaSendRawTransaction extends AbstractEeaSendRawTransaction {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(RestrictedOffchainEeaSendRawTransaction.class);
 
   final PrivacyController privacyController;
   private final PrivacyIdProvider privacyIdProvider;
@@ -55,6 +61,7 @@ public class RestrictedOffchainEeaSendRawTransaction extends AbstractEeaSendRawT
   protected ValidationResult<TransactionInvalidReason> validatePrivateTransaction(
       final PrivateTransaction privateTransaction, final Optional<User> user) {
 
+    LOG.info("validatePrivateTransaction");
     if (!privateTransaction.getRestriction().equals(Restriction.RESTRICTED)) {
       return ValidationResult.invalid(
           TransactionInvalidReason.PRIVATE_UNIMPLEMENTED_TRANSACTION_TYPE);
@@ -75,6 +82,7 @@ public class RestrictedOffchainEeaSendRawTransaction extends AbstractEeaSendRawT
       final PrivateTransaction privateTransaction,
       final Optional<User> user) {
 
+    LOG.info("createPrivateMarkerTransaction");
     final String privacyUserId = privacyIdProvider.getPrivacyUserId(user);
 
     final Optional<PrivacyGroup> maybePrivacyGroup =

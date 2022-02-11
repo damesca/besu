@@ -34,7 +34,12 @@ import java.util.List;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Enclave {
+
+  private static final Logger LOG = LoggerFactory.getLogger(Enclave.class);
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String ORION = "application/vnd.orion.v1+json";
@@ -58,7 +63,7 @@ public class Enclave {
 
   public SendResponse send(
       final String payload, final String privateFrom, final List<String> privateFor) {
-    /*LOG*/System.out.println("[Enclave] send(payload, privateFrom, privateFor)");
+    LOG.info("send(payload)");
     final SendRequestLegacy request = new SendRequestLegacy(payload, privateFrom, privateFor);
     return post(
         JSON,
@@ -69,7 +74,6 @@ public class Enclave {
 
   public SendResponse send(
       final String payload, final String privateFrom, final String privacyGroupId) {
-    /*LOG*/System.out.println("[Enclave] send(payload, privateFrom, privacyGroupId)");
     final SendRequestBesu request = new SendRequestBesu(payload, privateFrom, privacyGroupId);
     return post(
         JSON,
@@ -79,7 +83,7 @@ public class Enclave {
   }
 
   public ReceiveResponse receive(final String payloadKey) {
-    /*LOG*/System.out.println("[Enclave] receive(payloadKey)");
+    LOG.info("[Enclave] receive(payloadKey)");
     final ReceiveRequest request = new ReceiveRequest(payloadKey);
     return post(
         ORION,
@@ -89,7 +93,6 @@ public class Enclave {
   }
 
   public ReceiveResponse receive(final String payloadKey, final String to) {
-    /*LOG*/System.out.println("[Enclave] receive(payloadKey, to)");
     final ReceiveRequest request = new ReceiveRequest(payloadKey, to);
     return post(
         ORION,

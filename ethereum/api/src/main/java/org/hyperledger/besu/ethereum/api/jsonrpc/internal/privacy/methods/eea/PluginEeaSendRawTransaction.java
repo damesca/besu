@@ -66,6 +66,7 @@ public class PluginEeaSendRawTransaction extends AbstractEeaSendRawTransaction {
       final PrivateTransaction privateTransaction,
       final Optional<User> user) {
 
+    /*LOG*/System.out.println("[PluginEeaSendRawTransaction] createPrivateMarkerTransaction");
     final String privacyUserId = privacyIdProvider.getPrivacyUserId(user);
 
     final String payloadFromPlugin =

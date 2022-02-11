@@ -131,6 +131,7 @@ public class TransactionPool implements BlockAddedObserver {
 
   public ValidationResult<TransactionInvalidReason> addLocalTransaction(
       final Transaction transaction) {
+    LOG.info("addLocalTransaction");
     final ValidationResult<TransactionInvalidReason> validationResult =
         validateLocalTransaction(transaction);
     if (validationResult.isValid()) {
