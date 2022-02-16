@@ -25,6 +25,7 @@ import org.hyperledger.besu.enclave.types.ReceiveResponse;
 import org.hyperledger.besu.enclave.types.RetrievePrivacyGroupRequest;
 import org.hyperledger.besu.enclave.types.SendRequestBesu;
 import org.hyperledger.besu.enclave.types.SendRequestLegacy;
+import org.hyperledger.besu.enclave.types.SendRequestPrivacy;
 import org.hyperledger.besu.enclave.types.SendResponse;
 
 import java.io.IOException;
@@ -63,8 +64,20 @@ public class Enclave {
 
   public SendResponse send(
       final String payload, final String privateFrom, final List<String> privateFor) {
-    LOG.info("send(payload)");
+    LOG.info("send(payload, privateFrom, privateFor)1");
     final SendRequestLegacy request = new SendRequestLegacy(payload, privateFrom, privateFor);
+    return post(
+        JSON,
+        request,
+        "/send",
+        (statusCode, body) -> handleJsonResponse(statusCode, body, SendResponse.class));
+  }
+
+  //DONE: new method to send otVar info to Tessera
+  public SendResponse send(
+      final String payload, final String privateFrom, final List<String> privateFor, final String privateData){
+    LOG.info("send(payload, privateFrom, privateFor, privateData)2");
+    final SendRequestPrivacy request = new SendRequestPrivacy(payload, privateFrom, privateFor, privateData);
     return post(
         JSON,
         request,

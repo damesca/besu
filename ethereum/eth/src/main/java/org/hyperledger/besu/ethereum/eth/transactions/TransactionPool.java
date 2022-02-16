@@ -157,6 +157,7 @@ public class TransactionPool implements BlockAddedObserver {
     if (!syncState.isInSync(SYNC_TOLERANCE)) {
       return;
     }
+    LOG.info("addRemoteTransactions");
     final Set<Transaction> addedTransactions = new HashSet<>();
     for (final Transaction transaction : transactions) {
       pendingTransactions.tryEvictTransactionHash(transaction.getHash());
@@ -312,7 +313,7 @@ public class TransactionPool implements BlockAddedObserver {
   }
 
   public interface TransactionBatchAddedListener {
-
+    
     void onTransactionsAdded(Iterable<Transaction> transactions);
   }
 

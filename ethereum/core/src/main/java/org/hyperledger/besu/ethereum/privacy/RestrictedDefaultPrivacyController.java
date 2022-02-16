@@ -24,6 +24,7 @@ import org.hyperledger.besu.ethereum.rlp.BytesValueRLPOutput;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -119,17 +120,17 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
     LOG.info("sendRequest");
     final BytesValueRLPOutput rlpOutput = new BytesValueRLPOutput();
     
+    //TODO: future version will allow otVar with privacyGroup transactions
     if (maybePrivacyGroup.isPresent()) {
       final PrivacyGroup privacyGroup = maybePrivacyGroup.get();
       if (privacyGroup.getType() == PrivacyGroup.Type.PANTHEON) {
         // offchain privacy group
-        // DONE: privateWriteTo is used to omit otVar (with private info) in the rlpOutput which is sent
-        privateTransaction.privateWriteTo(rlpOutput);
-        LOG.info("privateWriteTo(rlpOutput), rlpOutput={}", rlpOutput.encoded().toHexString());
+        privateTransaction.writeTo(rlpOutput);
+        LOG.info("writeTo(rlpOutput), rlpOutput={}", rlpOutput.encoded().toHexString());
         return enclave.send(
             rlpOutput.encoded().toBase64String(),
             privacyUserId,
-            privateTransaction.getPrivacyGroupId().get().toBase64String());
+            privateTransaction.getPrivacyGroupId().get().toBase64String()); 
       } else {
         // this should not happen
         throw new IllegalArgumentException(
@@ -145,12 +146,17 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
     if (privateFor.isEmpty()) {
       privateFor.add(privateTransaction.getPrivateFrom().toBase64String());
     }
+
     privateTransaction.privateWriteTo(rlpOutput);
-    final String payload = rlpOutput.encoded().toBase64String();
-
+    //privateTransaction.writeTo(rlpOutput);
     LOG.info("privateWriteTo(rlpOutput), rlpOutput={}", rlpOutput.encoded().toHexString());
-
-    return enclave.send(payload, privateTransaction.getPrivateFrom().toBase64String(), privateFor);
+    //return enclave.send(
+    //    payload, 
+    //    privacyUserId, 
+    //    privateFor,
+    //    privateTransaction.getOtVar().toHexString());
+    return enclave.send(rlpOutput.encoded().toBase64String(), privateTransaction.getPrivateFrom().toBase64String(), privateFor);
+  
   }
 
   private List<String> resolveLegacyPrivateFor(final PrivateTransaction privateTransaction) {

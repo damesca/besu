@@ -141,9 +141,37 @@ public interface PrivateTransaction {
   Restriction getRestriction();
 
   /**
-   * Returns the variable which remains oblivious for the receiver
+   * Returns the privacyPointer
    *
-   * @return the variable which remains oblivious for the receiver
+   * @return the privacyPointer
    */
-  Bytes getOtVar();
+  Bytes getPrivacyPointer();
+
+  /**
+   * Returns the privateData
+   *
+   * @return the privateData
+   */
+  Bytes getPrivateData();
+
+  /**
+   * Value corresponding to the 'ExtV' component of the signature of the transaction.
+   *
+   * @return the 'ExtV' component of the signature
+   */
+  BigInteger getExtV();
+
+  /**
+   * Value corresponding to the 'ExtR' component of the signature of the transaction.
+   *
+   * @return the 'ExtR' component of the signature
+   */
+  BigInteger getExtR();
+
+  /**
+   * Value corresponding to the 'ExtS' component of the signature of the transaction.
+   *
+   * @return the 'ExtS' component of the signature
+   */
+  BigInteger getExtS();
 }

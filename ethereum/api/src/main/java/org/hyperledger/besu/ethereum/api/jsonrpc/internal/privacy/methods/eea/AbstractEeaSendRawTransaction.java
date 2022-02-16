@@ -80,8 +80,9 @@ public abstract class AbstractEeaSendRawTransaction implements JsonRpcMethod {
       final PrivateTransaction privateTransaction =
           PrivateTransaction.readFrom(RLP.input(Bytes.fromHexString(rawPrivateTransaction)));
 
-      //TODO: extract otVar previously to send the transaction to Tessera
+      //TODO: extract and locally save otVar previously to send the transaction to Tessera
       LOG.info("privateTransaction -> \n{}", privateTransaction.toString());
+      //////////
       final ValidationResult<TransactionInvalidReason> validationResult =
           validatePrivateTransaction(privateTransaction, user);
 
@@ -94,7 +95,6 @@ public abstract class AbstractEeaSendRawTransaction implements JsonRpcMethod {
           privateMarkerTransactionFactory.getSender(
               privateTransaction, privacyIdProvider.getPrivacyUserId(user));
 
-      //privateTransaction.otVar(Bytes.wrap(new byte[] {(byte)0x00}));
       final Transaction privateMarkerTransaction =
           createPrivateMarkerTransaction(Address.fromPlugin(sender), privateTransaction, user);
 
