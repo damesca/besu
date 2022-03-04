@@ -91,6 +91,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
 
   private final Restriction restriction;
 
+  private final Bytes otWith;
+
   // Caches a "hash" of a portion of the transaction used for sender recovery.
   // Note that this hash does not include the transaction signature, so it does not
   // fully identify the transaction (use the result of the {@code hash()} for that).
@@ -178,6 +180,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
     final Bytes privateFrom = input.readBytes();
     final Object privateForOrPrivacyGroupId = resolvePrivateForOrPrivacyGroupId(input.readAsRlp());
     final Restriction restriction = convertToEnum(input.readBytes());
+    final Bytes otWith = input.readBytes();
 
     input.leaveList();
 
@@ -189,6 +192,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
           .privateFrom(privateFrom)
           .privateFor((List<Bytes>) privateForOrPrivacyGroupId)
           .restriction(restriction)
+          .otWith(otWith)
           .build();
     } else {
       return builder
@@ -196,6 +200,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
           .privateFrom(privateFrom)
           .privacyGroupId((Bytes) privateForOrPrivacyGroupId)
           .restriction(restriction)
+          .otWith(otWith)
           .build();
     }
   }
@@ -250,7 +255,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
       final Bytes privateFrom,
       final Optional<List<Bytes>> privateFor,
       final Optional<Bytes> privacyGroupId,
-      final Restriction restriction) {
+      final Restriction restriction,
+      final Bytes otWith) {
     this.nonce = nonce;
     this.gasPrice = gasPrice;
     this.gasLimit = gasLimit;
@@ -264,6 +270,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
     this.privateFor = privateFor;
     this.privacyGroupId = privacyGroupId;
     this.restriction = restriction;
+    this.otWith = otWith;
   }
 
   protected PrivateTransaction(final PrivateTransaction privateTransaction) {
@@ -280,7 +287,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
         privateTransaction.getPrivateFrom(),
         privateTransaction.getPrivateFor(),
         privateTransaction.getPrivacyGroupId(),
-        privateTransaction.getRestriction());
+        privateTransaction.getRestriction(),
+        privateTransaction.getOtWith());
   }
 
   /**
@@ -409,6 +417,16 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
   }
 
   /**
+   * Returns the otWith discriminator.
+   * 
+   * @return otWith
+   */
+  @Override
+  public Bytes getOtWith() {
+    return otWith;
+  }
+
+  /**
    * Returns the transaction sender.
    *
    * @return the transaction sender
@@ -443,7 +461,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
               privateFrom,
               privateFor,
               privacyGroupId,
-              restriction.getBytes());
+              restriction.getBytes(),
+              otWith);
     }
     return hashNoSignature;
   }
@@ -476,6 +495,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
         .ifPresent(privateFor -> out.writeList(privateFor, (bv, rlpO) -> rlpO.writeBytes(bv)));
     t.getPrivacyGroupId().ifPresent(out::writeBytes);
     out.writeBytes(t.getRestriction().getBytes());
+    out.writeBytes(t.getOtWith());
 
     out.endList();
     return out;
@@ -560,7 +580,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
       final Bytes privateFrom,
       final Optional<List<Bytes>> privateFor,
       final Optional<Bytes> privacyGroupId,
-      final Bytes restriction) {
+      final Bytes restriction,
+      final Bytes otWith) {
     return keccak256(
         RLP.encode(
             out -> {
@@ -580,6 +601,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
               privateFor.ifPresent(pF -> out.writeList(pF, (bv, rlpO) -> rlpO.writeBytes(bv)));
               privacyGroupId.ifPresent(out::writeBytes);
               out.writeBytes(restriction);
+              out.writeBytes(otWith);
               out.endList();
             }));
   }
@@ -616,7 +638,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
         chainId,
         privateFor,
         privateFrom,
-        restriction);
+        restriction,
+        otWith);
   }
 
   @Override
@@ -638,7 +661,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
           .append(", ");
     if (getPrivacyGroupId().isPresent())
       sb.append("privacyGroupId=").append(getPrivacyGroupId().get()).append(", ");
-    sb.append("restriction=").append(getRestriction());
+    sb.append("restriction=").append(getRestriction()).append(", ");
+    sb.append("otWith=").append(getOtWith());
     return sb.append("}").toString();
   }
 
@@ -676,6 +700,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
     protected Optional<Bytes> privacyGroupId = Optional.empty();
 
     protected Restriction restriction;
+
+    protected Bytes otWith;
 
     public Builder chainId(final BigInteger chainId) {
       this.chainId = Optional.of(chainId);
@@ -742,6 +768,11 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
       return this;
     }
 
+    public Builder otWith(final Bytes otWith) {
+      this.otWith = otWith;
+      return this;
+    }
+
     public PrivateTransaction build() {
       if (privacyGroupId.isPresent() && privateFor.isPresent()) {
         throw new IllegalArgumentException(
@@ -760,7 +791,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
           privateFrom,
           privateFor,
           privacyGroupId,
-          restriction);
+          restriction,
+          otWith);
     }
 
     public PrivateTransaction signAndBuild(final KeyPair keys) {
@@ -784,7 +816,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
               privateFrom,
               privateFor,
               privacyGroupId,
-              restriction.getBytes());
+              restriction.getBytes(),
+              otWith);
       return SIGNATURE_ALGORITHM.get().sign(hash, keys);
     }
   }

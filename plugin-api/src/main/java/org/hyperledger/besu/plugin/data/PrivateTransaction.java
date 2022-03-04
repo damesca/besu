@@ -139,4 +139,11 @@ public interface PrivateTransaction {
    * @return privacy restriction unrestricted/restricted
    */
   Restriction getRestriction();
+
+  /**
+   * An option to specify if the transaction has to perform OT or not.
+   * 
+   * @return otWith
+   */
+  Bytes getOtWith();
 }
