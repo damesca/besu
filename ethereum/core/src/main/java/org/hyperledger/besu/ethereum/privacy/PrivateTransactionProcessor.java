@@ -95,6 +95,8 @@ public class PrivateTransactionProcessor {
       final OperationTracer operationTracer,
       final Function<Long, Hash> blockHashLookup,
       final Bytes privacyGroupId) {
+
+    /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] processTransaction()");
     try {
       LOG.trace("Starting private execution of {}", transaction);
 
@@ -105,8 +107,16 @@ public class PrivateTransactionProcessor {
               ? maybePrivateSender.getMutable()
               : privateWorldState.createAccount(senderAddress, 0, Wei.ZERO).getMutable();
 
+      /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] sender");
+      /*LOG*/System.out.println(sender.getAddress().toHexString());
+      /*LOG*/System.out.println(sender.toString());
+
       final ValidationResult<TransactionInvalidReason> validationResult =
           privateTransactionValidator.validate(transaction, sender.getNonce(), false);
+
+      /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] validationResult -> is valid?");
+      /*LOG*/System.out.println(validationResult.isValid());
+
       if (!validationResult.isValid()) {
         return TransactionProcessingResult.invalid(validationResult);
       }
@@ -117,6 +127,9 @@ public class PrivateTransactionProcessor {
           senderAddress,
           previousNonce,
           sender.getNonce());
+
+      /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] previousNonce");
+      /*LOG*/System.out.println(previousNonce);
 
       final WorldUpdater mutablePrivateWorldStateUpdater =
           new DefaultMutablePrivateWorldStateUpdater(publicWorldState, privateWorldState);
@@ -141,8 +154,12 @@ public class PrivateTransactionProcessor {
 
       final MessageFrame initialFrame;
       if (transaction.isContractCreation()) {
+        
+        /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] is contract creation. Address:");
         final Address privateContractAddress =
             Address.privateContractAddress(senderAddress, previousNonce, privacyGroupId);
+
+        /*LOG*/System.out.println(privateContractAddress.toHexString());
 
         LOG.debug(
             "Calculated contract address {} from sender {} with nonce {} and privacy group {}",
@@ -159,10 +176,23 @@ public class PrivateTransactionProcessor {
                 .inputData(Bytes.EMPTY)
                 .code(new Code(transaction.getPayload(), Hash.EMPTY))
                 .build();
+        /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] payload");
+        /*LOG*/System.out.println(transaction.getPayload().toHexString());
+
       } else {
+        /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] is NOT contract creation");
         final Address to = transaction.getTo().get();
         final Optional<Account> maybeContract =
             Optional.ofNullable(mutablePrivateWorldStateUpdater.get(to));
+
+        /* LOG */
+        if(maybeContract.isPresent()){
+          /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] maybeContract is present");
+          /*LOG*/System.out.println(maybeContract.get().toString());
+        }else{
+          /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] maybeContract is not present");
+        }
+
         initialFrame =
             commonMessageFrameBuilder
                 .type(MessageFrame.Type.MESSAGE_CALL)
@@ -183,13 +213,28 @@ public class PrivateTransactionProcessor {
       }
 
       if (initialFrame.getState() == MessageFrame.State.COMPLETED_SUCCESS) {
+        /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] initialFrame.state = COMPLETED_SUCCESS");
         mutablePrivateWorldStateUpdater.commit();
       }
 
       if (initialFrame.getState() == MessageFrame.State.COMPLETED_SUCCESS) {
+
+        /* DEBUG */
+        /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] contract account when creating");
+        final Address privateContractAddress =
+            Address.privateContractAddress(senderAddress, previousNonce, privacyGroupId);
+        Optional<Account> opt = Optional.ofNullable(initialFrame.getWorldUpdater().get(privateContractAddress));
+        if(opt.isPresent()){
+          /*LOG*/System.out.println(opt.get().toString());
+        }else{
+          /*LOG*/System.out.println("NONE");
+        }
+
+        /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] initialFrame.state = COMPLETED_SUCCESS");
         return TransactionProcessingResult.successful(
             initialFrame.getLogs(), 0, 0, initialFrame.getOutputData(), ValidationResult.valid());
       } else {
+        /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] initialFrame.state = FAILED");
         return TransactionProcessingResult.failed(
             0,
             0,

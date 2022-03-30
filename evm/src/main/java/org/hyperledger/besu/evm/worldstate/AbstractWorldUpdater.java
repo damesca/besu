@@ -64,6 +64,7 @@ public abstract class AbstractWorldUpdater<W extends WorldView, A extends Accoun
 
   @Override
   public Account get(final Address address) {
+    /*LOG*/System.out.println(" >>> [AbstractWorldUpdater] get()");
     // We may have updated it already, so check that first.
     final MutableAccount existing = updatedAccounts.get(address);
     if (existing != null) {

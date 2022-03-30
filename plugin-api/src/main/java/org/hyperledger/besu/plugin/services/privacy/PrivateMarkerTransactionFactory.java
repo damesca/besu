@@ -16,6 +16,7 @@ package org.hyperledger.besu.plugin.services.privacy;
 
 import org.hyperledger.besu.plugin.data.Address;
 import org.hyperledger.besu.plugin.data.PrivateTransaction;
+import org.hyperledger.besu.plugin.data.ExtendedPrivateTransaction;
 import org.hyperledger.besu.plugin.data.UnsignedPrivateMarkerTransaction;
 
 import org.apache.tuweni.bytes.Bytes;

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 public enum RpcMethod {
+  SEND_PRIV_EXT_TRANSACTION("sendPrivExtTransaction"),
   ADMIN_ADD_PEER("admin_addPeer"),
   ADMIN_NODE_INFO("admin_nodeInfo"),
   ADMIN_PEERS("admin_peers"),

@@ -100,6 +100,9 @@ public class PrivacyBlockProcessor implements BlockProcessor {
     final Result result =
         blockProcessor.processBlock(
             blockchain, worldState, blockHeader, transactions, ommers, metadataUpdater);
+
+    /*LOG*/System.out.println(" >>> [PrivacyBlockProcessor] result");
+    /*LOG*/System.out.println(result.isSuccessful());
     metadataUpdater.commit();
     return result;
   }
@@ -117,6 +120,7 @@ public class PrivacyBlockProcessor implements BlockProcessor {
               try {
                 final ReceiveResponse receiveResponse =
                     enclave.receive(privateTransactionsLookupId.toBase64String());
+                /*LOG*/System.out.println("[PrivacyBlockProcessor] enclave.receive(privateTransactionsLookupId)");
                 final List<PrivateTransactionWithMetadata> privateTransactionWithMetadataList =
                     PrivateTransactionWithMetadata.readListFromPayload(
                         Bytes.wrap(Base64.getDecoder().decode(receiveResponse.getPayload())));

@@ -65,6 +65,7 @@ public class PrivGetTransactionReceipt implements JsonRpcMethod {
 
   @Override
   public JsonRpcResponse response(final JsonRpcRequestContext requestContext) {
+    /*LOG*/System.out.println(" >>> [PrivGetTransactionReceipt] response()");
     LOG.trace("Executing {}", RpcMethod.PRIV_GET_TRANSACTION_RECEIPT.getMethodName());
     final Hash pmtTransactionHash = requestContext.getRequiredParameter(0, Hash.class);
     final String enclaveKey = privacyIdProvider.getPrivacyUserId(requestContext.getUser());
@@ -83,6 +84,9 @@ public class PrivGetTransactionReceipt implements JsonRpcMethod {
       return new JsonRpcSuccessResponse(requestContext.getRequest().getId(), null);
     }
 
+    /*LOG*/System.out.println(" >>> [PrivGetTransactionReceipt] privateTransaction");
+    /*LOG*/System.out.println(privateTransaction.toString());
+
     final String contractAddress = calculateContractAddress(privateTransaction);
 
     LOG.trace("Calculated contractAddress: {}", contractAddress);
@@ -98,6 +102,9 @@ public class PrivGetTransactionReceipt implements JsonRpcMethod {
                     findPrivateReceiptByPrivateTxHash(
                         privateStateStorage, blockHash, privateTransaction))
             .orElse(PrivateTransactionReceipt.FAILED);
+
+    /*LOG*/System.out.println(" >>> [PrivGetTransactionReceipt] privateTransactionReceipt");
+    /*LOG*/System.out.println(privateTransactionReceipt.toString());
 
     LOG.trace("Processed private transaction receipt");
 
@@ -151,6 +158,7 @@ public class PrivGetTransactionReceipt implements JsonRpcMethod {
       final PrivateStateStorage privateStateStorage,
       final Hash blockHash,
       final PrivateTransaction privateTransaction) {
+    /*LOG*/System.out.println(" >>> [PrivGetTransactionReceipt] findPrivateReceiptByPrivateTxHash");
     final Bytes rlpEncoded = RLP.encode(privateTransaction::writeTo);
     final Bytes32 txHash = org.hyperledger.besu.crypto.Hash.keccak256(rlpEncoded);
 

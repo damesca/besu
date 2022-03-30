@@ -79,6 +79,9 @@ public abstract class AbstractEeaSendRawTransaction implements JsonRpcMethod {
       final PrivateTransaction privateTransaction =
           PrivateTransaction.readFrom(RLP.input(Bytes.fromHexString(rawPrivateTransaction)));
 
+      /*LOG*/System.out.println(" >>> [AbstractEeaSendRawTransaction] new transaction received");
+      /*LOG*/System.out.println(privateTransaction.toString());
+
       final ValidationResult<TransactionInvalidReason> validationResult =
           validatePrivateTransaction(privateTransaction, user);
 
@@ -93,6 +96,8 @@ public abstract class AbstractEeaSendRawTransaction implements JsonRpcMethod {
 
       final Transaction privateMarkerTransaction =
           createPrivateMarkerTransaction(Address.fromPlugin(sender), privateTransaction, user);
+
+      /*LOG*/System.out.println(privateMarkerTransaction.toString());
 
       return transactionPool
           .addLocalTransaction(privateMarkerTransaction)

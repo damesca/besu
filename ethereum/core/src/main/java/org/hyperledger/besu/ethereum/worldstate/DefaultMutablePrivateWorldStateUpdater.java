@@ -91,8 +91,10 @@ public class DefaultMutablePrivateWorldStateUpdater implements WorldUpdater {
   public Account get(final Address address) {
     final Account privateAccount = privateWorldUpdater.get(address);
     if (privateAccount != null && !privateAccount.isEmpty()) {
+      /*LOG*/System.out.println(" >>> [DefaultMutablePrivateWorldStateUpdater] get private is ok");
       return privateAccount;
     }
+    /*LOG*/System.out.println(" >>> [DefaultMutablePrivateWorldStateUpdater] get private is not ok");
     return publicWorldUpdater.get(address);
   }
 

@@ -347,6 +347,7 @@ public class FlexiblePrivacyController extends AbstractRestrictedPrivacyControll
   }
 
   ReceiveResponse retrieveTransaction(final String enclaveKey, final String privacyUserId) {
+    /*LOG*/System.out.println(" >>> [FlexiblePrivacyController] retrieveTransaction()");
     return enclave.receive(enclaveKey, privacyUserId);
   }
 

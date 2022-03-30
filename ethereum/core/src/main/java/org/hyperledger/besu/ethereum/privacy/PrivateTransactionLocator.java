@@ -119,6 +119,7 @@ public class PrivateTransactionLocator {
 
   private Optional<ReceiveResponse> retrievePayloadFromEnclave(
       final String payloadKey, final String enclaveKey) {
+    /*LOG*/System.out.println(" >>> [PrivateTransactionLocator] retrievePayloadFromEnclave()");
     try {
       return Optional.of(enclave.receive(payloadKey, enclaveKey));
     } catch (final EnclaveClientException e) {

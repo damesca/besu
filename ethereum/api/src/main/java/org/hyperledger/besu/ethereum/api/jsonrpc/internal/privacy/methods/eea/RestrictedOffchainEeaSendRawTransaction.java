@@ -75,6 +75,8 @@ public class RestrictedOffchainEeaSendRawTransaction extends AbstractEeaSendRawT
       final PrivateTransaction privateTransaction,
       final Optional<User> user) {
 
+    /*LOG*/System.out.println(" >>> [RestrictedOffChainEeaSendRawTransaction] createPrivateMarkerTransaction");
+
     final String privacyUserId = privacyIdProvider.getPrivacyUserId(user);
 
     final Optional<PrivacyGroup> maybePrivacyGroup =

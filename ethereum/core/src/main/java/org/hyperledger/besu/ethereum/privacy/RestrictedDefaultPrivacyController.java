@@ -145,6 +145,7 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
     privateTransaction.writeTo(rlpOutput);
     final String payload = rlpOutput.encoded().toBase64String();
 
+    /*LOG*/System.out.println(" >>> [RestrictedDefaultPrivacyController] enclave.send()");
     return enclave.send(payload, privateTransaction.getPrivateFrom().toBase64String(), privateFor);
   }
 

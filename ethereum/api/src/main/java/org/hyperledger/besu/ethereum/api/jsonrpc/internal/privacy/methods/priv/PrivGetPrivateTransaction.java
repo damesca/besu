@@ -55,6 +55,7 @@ public class PrivGetPrivateTransaction implements JsonRpcMethod {
 
   @Override
   public JsonRpcResponse response(final JsonRpcRequestContext requestContext) {
+    /*LOG*/System.out.println(" >>> [PrivGetPrivateTransaction] response()");
     LOG.trace("Executing {}", RpcMethod.PRIV_GET_PRIVATE_TRANSACTION.getMethodName());
 
     final Hash hash = requestContext.getRequiredParameter(0, Hash.class);

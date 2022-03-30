@@ -1,17 +1,3 @@
-/*
- * Copyright ConsenSys AG.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
 package org.hyperledger.besu.ethereum.privacy;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -51,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** An operation submitted by an external actor to be applied to the system. */
-public class PrivateTransaction implements org.hyperledger.besu.plugin.data.PrivateTransaction {
+public class ExtendedPrivateTransaction implements org.hyperledger.besu.plugin.data.ExtendedPrivateTransaction{
   private static final Logger LOG = LoggerFactory.getLogger(PrivateTransaction.class);
 
   // Used for transactions that are not tied to a specific chain
@@ -113,8 +99,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
     return new Builder();
   }
 
-  public static PrivateTransaction readFrom(
-      final org.hyperledger.besu.plugin.data.PrivateTransaction p) {
+  public static ExtendedPrivateTransaction readFrom(
+      final org.hyperledger.besu.plugin.data.ExtendedPrivateTransaction p) {
 
     final BigInteger v = p.getV();
     final byte recId;
@@ -159,8 +145,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
   }
 
   @SuppressWarnings({"unchecked"})
-  public static PrivateTransaction readFrom(final RLPInput input) throws RLPException {
-    /*LOG*/System.out.println(" >>> [PrivateTransaction] readFrom");
+  public static ExtendedPrivateTransaction readFrom(final RLPInput input) throws RLPException {
     input.enterList();
 
     final Builder builder =
@@ -196,19 +181,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
 
     final BigInteger extR = input.readUInt256Scalar().toUnsignedBigInteger();
     final BigInteger extS = input.readUInt256Scalar().toUnsignedBigInteger();
-    final BigInteger extV = input.readBigIntegerScalar(); 
-    final byte extRecId;
-    Optional<BigInteger> extChainId = Optional.empty();
-    if (extV.equals(REPLAY_UNPROTECTED_V_BASE) || extV.equals(REPLAY_UNPROTECTED_V_BASE_PLUS_1)) {
-      extRecId = extV.subtract(REPLAY_UNPROTECTED_V_BASE).byteValueExact();
-    } else if (extV.compareTo(REPLAY_PROTECTED_V_MIN) > 0) {
-      extChainId = Optional.of(extV.subtract(REPLAY_PROTECTED_V_BASE).divide(TWO));
-      extRecId = extV.subtract(TWO.multiply(extChainId.get()).add(REPLAY_PROTECTED_V_BASE)).byteValueExact();
-    } else {
-      throw new RuntimeException(
-          String.format("An unsupported encoded `v` value of %s was found", extV));
-    }
-    final SECPSignature extSignature = SIGNATURE_ALGORITHM.get().createSignature(extR, extS, extRecId);
+    final SECPSignature extSignature = SIGNATURE_ALGORITHM.get().createSignature(extR, extS, recId);
 
     input.leaveList();
 
@@ -274,7 +247,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
    *     transaction
    * @param restriction the restriction of this private transaction
    */
-  protected PrivateTransaction(
+  protected ExtendedPrivateTransaction(
       final long nonce,
       final Wei gasPrice,
       final long gasLimit,
@@ -309,7 +282,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
     this.extSignature = extSignature;
   }
 
-  protected PrivateTransaction(final PrivateTransaction privateTransaction) {
+  protected ExtendedPrivateTransaction(final ExtendedPrivateTransaction privateTransaction) {
     this(
         privateTransaction.getNonce(),
         privateTransaction.getGasPrice(),
@@ -508,10 +481,9 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
               privateFrom,
               privateFor,
               privacyGroupId,
-              restriction.getBytes());
+              restriction.getBytes(),
+              otWith);
     }
-    /*LOG*/System.out.println("HASH");
-    /*LOG*/System.out.println(hashNoSignature.toHexString());
     return hashNoSignature;
   }
 
@@ -525,7 +497,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
   }
 
   public static BytesValueRLPOutput serialize(
-      final org.hyperledger.besu.plugin.data.PrivateTransaction t) {
+      final org.hyperledger.besu.plugin.data.ExtendedPrivateTransaction t) {
     final BytesValueRLPOutput out = new BytesValueRLPOutput();
     out.startList();
 
@@ -545,7 +517,6 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
     out.writeBytes(t.getRestriction().getBytes());
     out.writeBytes(t.getOtWith());
     out.writeBytes(t.getPrivateArgs());
-    out.writeBigIntegerScalar(t.getExtV());
     out.writeBigIntegerScalar(t.getExtR());
     out.writeBigIntegerScalar(t.getExtS());
 
@@ -573,18 +544,6 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
       v = recId.add(REPLAY_PROTECTED_V_BASE).add(TWO.multiply(chainId.get()));
     }
     return v;
-  }
-
-  @Override
-  public BigInteger getExtV() {
-    final BigInteger extV;
-    final BigInteger recId = BigInteger.valueOf(signature.getRecId());
-    if (!chainId.isPresent()) {
-      extV = recId.add(REPLAY_UNPROTECTED_V_BASE);
-    } else {
-      extV = recId.add(REPLAY_PROTECTED_V_BASE).add(TWO.multiply(chainId.get()));
-    }
-    return extV;
   }
 
   @Override
@@ -654,7 +613,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
       final Bytes privateFrom,
       final Optional<List<Bytes>> privateFor,
       final Optional<Bytes> privacyGroupId,
-      final Bytes restriction) {
+      final Bytes restriction,
+      final Bytes otWith) {
     return keccak256(
         RLP.encode(
             out -> {
@@ -674,16 +634,18 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
               privateFor.ifPresent(pF -> out.writeList(pF, (bv, rlpO) -> rlpO.writeBytes(bv)));
               privacyGroupId.ifPresent(out::writeBytes);
               out.writeBytes(restriction);
+              out.writeBytes(otWith);
               out.endList();
             }));
   }
 
   @Override
   public boolean equals(final Object other) {
+    /*
     if (!(other instanceof PrivateTransaction)) {
       return false;
     }
-    final PrivateTransaction that = (PrivateTransaction) other;
+    final ExtendedPrivateTransaction that = (ExtendedPrivateTransaction) other;
     return this.chainId.equals(that.chainId)
         && this.gasLimit == that.gasLimit
         && this.gasPrice.equals(that.gasPrice)
@@ -697,6 +659,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
         && this.restriction.equals(that.restriction)
         && this.privateArgs.equals(that.privateArgs)
         && this.extSignature.equals(that.extSignature);
+        */
+    return true;
   }
 
   @Override
@@ -863,12 +827,12 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
         return this;
     }
 
-    public PrivateTransaction build() {
+    public ExtendedPrivateTransaction build() {
       if (privacyGroupId.isPresent() && privateFor.isPresent()) {
         throw new IllegalArgumentException(
             "Private transaction should contain either privacyGroup or privateFor, but not both");
       }
-      return new PrivateTransaction(
+      return new ExtendedPrivateTransaction(
           nonce,
           gasPrice,
           gasLimit,
@@ -887,7 +851,7 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
           extSignature);
     }
 
-    public PrivateTransaction signAndBuild(final KeyPair keys) {
+    public ExtendedPrivateTransaction signAndBuild(final KeyPair keys) {
       checkState(
           signature == null, "The transaction signature has already been provided to this builder");
       signature(computeSignature(keys));
@@ -908,7 +872,8 @@ public class PrivateTransaction implements org.hyperledger.besu.plugin.data.Priv
               privateFrom,
               privateFor,
               privacyGroupId,
-              restriction.getBytes());
+              restriction.getBytes(),
+              otWith);
       return SIGNATURE_ALGORITHM.get().sign(hash, keys);
     }
   }

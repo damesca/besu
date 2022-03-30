@@ -58,6 +58,7 @@ public class Enclave {
 
   public SendResponse send(
       final String payload, final String privateFrom, final List<String> privateFor) {
+    /*LOG*/System.out.println(" >>> [Enclave] sendRequestLegacy");
     final SendRequestLegacy request = new SendRequestLegacy(payload, privateFrom, privateFor);
     return post(
         JSON,
@@ -68,6 +69,7 @@ public class Enclave {
 
   public SendResponse send(
       final String payload, final String privateFrom, final String privacyGroupId) {
+        /*LOG*/System.out.println(" >>> [Enclave] sendRequestBesu");
     final SendRequestBesu request = new SendRequestBesu(payload, privateFrom, privacyGroupId);
     return post(
         JSON,
@@ -77,6 +79,7 @@ public class Enclave {
   }
 
   public ReceiveResponse receive(final String payloadKey) {
+    /*LOG*/System.out.println(" >>> [Enclave] receive(1)");
     final ReceiveRequest request = new ReceiveRequest(payloadKey);
     return post(
         ORION,
@@ -86,6 +89,7 @@ public class Enclave {
   }
 
   public ReceiveResponse receive(final String payloadKey, final String to) {
+    /*LOG*/System.out.println(" >>> [Enclave] receive(2)");
     final ReceiveRequest request = new ReceiveRequest(payloadKey, to);
     return post(
         ORION,

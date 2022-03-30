@@ -44,12 +44,14 @@ import org.hyperledger.besu.evm.Gas;
 import org.hyperledger.besu.evm.frame.BlockValues;
 import org.hyperledger.besu.evm.frame.MessageFrame;
 import org.hyperledger.besu.evm.gascalculator.GasCalculator;
+import org.hyperledger.besu.evm.log.Log;
 import org.hyperledger.besu.evm.precompile.AbstractPrecompiledContract;
 import org.hyperledger.besu.evm.tracing.OperationTracer;
 import org.hyperledger.besu.evm.worldstate.WorldUpdater;
 import org.hyperledger.besu.plugin.data.Hash;
 
 import java.util.Base64;
+import java.util.List;
 
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
@@ -105,12 +107,20 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   @Override
   public Bytes compute(final Bytes input, final MessageFrame messageFrame) {
 
+    /*LOG*/System.out.println(" >> [PrivacyPrecompiledContract] compute()");
+
     if (skipContractExecution(messageFrame)) {
       return Bytes.EMPTY;
     }
 
     final org.hyperledger.besu.plugin.data.Hash pmtHash =
         messageFrame.getContextVariable(KEY_TRANSACTION_HASH);
+
+    /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] pmtHash");
+    /*LOG*/System.out.println(pmtHash.toHexString());
+
+    /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] key");
+    /*LOG*/System.out.println(input.toHexString());
 
     final String key = input.toBase64String();
     final ReceiveResponse receiveResponse;
@@ -126,6 +136,9 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
             Bytes.wrap(Base64.getDecoder().decode(receiveResponse.getPayload())), false);
     final PrivateTransaction privateTransaction =
         PrivateTransaction.readFrom(bytesValueRLPInput.readAsRlp());
+      
+    /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] privateTransaction from enclave");
+    /*LOG*/System.out.println(privateTransaction.toString());
 
     final Bytes privateFrom = privateTransaction.getPrivateFrom();
     if (!privateFromMatchesSenderKey(privateFrom, receiveResponse.getSenderKey())) {
@@ -157,11 +170,19 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
 
     final PrivateMetadataUpdater privateMetadataUpdater =
         messageFrame.getContextVariable(KEY_PRIVATE_METADATA_UPDATER);
+
+    /*LOG*/System.out.println(" >>> [PrivPrecContract] KEY_TRANSACTION_HASH");    
+    /*DEBUG*/Hash txHash = messageFrame.getContextVariable(KEY_TRANSACTION_HASH);
+    /*LOG*/System.out.println(txHash.toHexString());
+
     final Hash lastRootHash =
         privateStateRootResolver.resolveLastStateRoot(privacyGroupId, privateMetadataUpdater);
 
     final MutableWorldState disposablePrivateState =
         privateWorldStateArchive.getMutable(fromPlugin(lastRootHash), null).get();
+
+    /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] disposablePrivateState.rootHash()");
+    /*LOG*/System.out.println(disposablePrivateState.rootHash().toHexString());
 
     final WorldUpdater privateWorldStateUpdater = disposablePrivateState.updater();
 
@@ -175,6 +196,16 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
     final TransactionProcessingResult result =
         processPrivateTransaction(
             messageFrame, privateTransaction, privacyGroupId, privateWorldStateUpdater);
+
+    /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] result.getOutput()");
+    /*LOG*/System.out.println(result.getOutput().toHexString());
+    /*LOG*/System.out.println("result.isInvalid()");
+    /*LOG*/System.out.println(result.isInvalid());
+    List<Log> logs = result.getLogs();
+    for (Log log : logs) {
+      /*LOG*/System.out.println(" ### log:");
+      /*LOG*/System.out.println(log.toString());
+    }
 
     if (result.isInvalid() || !result.isSuccessful()) {
       LOG.error(
@@ -238,6 +269,8 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
       final Bytes32 privacyGroupId,
       final WorldUpdater privateWorldStateUpdater) {
 
+    /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] processPrivateTransaction()");
+
     return privateTransactionProcessor.processTransaction(
         messageFrame.getWorldUpdater(),
         privateWorldStateUpdater,
@@ -254,6 +287,13 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
     final ReceiveResponse receiveResponse;
     try {
       receiveResponse = enclave.receive(key);
+      /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] enclave.receive()");
+      /*LOG*/System.out.println(" ## privacyGroupId");
+      /*LOG*/System.out.println(receiveResponse.getPrivacyGroupId());
+      /*LOG*/System.out.println(" ## getSenderKey");
+      /*LOG*/System.out.println(receiveResponse.getSenderKey());
+      /*LOG*/System.out.println(" ## payload");
+      ///*LOG*/System.out.println(Bytes.wrap(receiveResponse.getPayload()).toHexString());
     } catch (final EnclaveServerException e) {
       throw new IllegalStateException(
           "Enclave is responding with an error, perhaps it has a misconfiguration?", e);

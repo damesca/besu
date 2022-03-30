@@ -36,14 +36,20 @@ public class PrivateStateRootResolver {
 
   public Hash resolveLastStateRoot(
       final Bytes32 privacyGroupId, final PrivateMetadataUpdater privateMetadataUpdater) {
+
+    /*LOG*/System.out.println(" >>> [PrivateStateRootResolver] resolveLastStateRoot()");
     final PrivateBlockMetadata privateBlockMetadata =
         privateMetadataUpdater.getPrivateBlockMetadata(privacyGroupId);
     if (privateBlockMetadata != null) {
+      /*LOG*/System.out.println(" >>> [PrivateStateRootResolver] privateBlockMetadata is not null");
       return privateBlockMetadata.getLatestStateRoot().get();
     } else {
+      /*LOG*/System.out.println(" >>> [PrivateStateRootResolver] privateBlockMetadata is null");
       final Hash blockHashForLastBlockWithTx =
           privateMetadataUpdater.getPrivacyGroupHeadBlockMap().get(privacyGroupId);
       if (blockHashForLastBlockWithTx != null) {
+        /*LOG*/System.out.println("blockHashForLastBlockWithTx");
+        /*LOG*/System.out.println(blockHashForLastBlockWithTx.toHexString());
         return privateStateStorage
             .getPrivateBlockMetadata(blockHashForLastBlockWithTx, privacyGroupId)
             .flatMap(PrivateBlockMetadata::getLatestStateRoot)
@@ -53,6 +59,7 @@ public class PrivateStateRootResolver {
                         "Privacy inconsistent state: PrivateBlockMetadata does not exist for Block "
                             + blockHashForLastBlockWithTx));
       } else {
+        /*LOG*/System.out.println(" EMPTY_ROOT_HASH ");
         return EMPTY_ROOT_HASH;
       }
     }

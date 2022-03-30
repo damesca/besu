@@ -148,6 +148,10 @@ public abstract class AbstractBlockProcessor implements BlockProcessor {
     final List<TransactionReceipt> receipts = new ArrayList<>();
     long currentGasUsed = 0;
     for (final Transaction transaction : transactions) {
+
+      /*LOG*/System.out.println(" >>> [AbstractBlockProcessor] processBlock -> transaction");
+      /*LOG*/System.out.println(transaction.toString());
+
       if (!hasAvailableBlockBudget(blockHeader, transaction, currentGasUsed)) {
         return AbstractBlockProcessor.Result.failed();
       }
