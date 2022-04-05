@@ -162,10 +162,12 @@ public abstract class AbstractMessageProcessor {
 
   public void process(final MessageFrame frame, final OperationTracer operationTracer) {
     if (frame.getState() == MessageFrame.State.NOT_STARTED) {
+      /*LOG*/System.out.println(" >>> [AbstractMessageProcessor] NOT_STARTED");
       start(frame, operationTracer);
     }
 
     if (frame.getState() == MessageFrame.State.CODE_EXECUTING) {
+      /*LOG*/System.out.println(" >>> [AbstractMessageProcessor] CODE_EXECUTING");
       codeExecute(frame, operationTracer);
 
       if (frame.getState() == MessageFrame.State.CODE_SUSPENDED) {
@@ -178,18 +180,22 @@ public abstract class AbstractMessageProcessor {
     }
 
     if (frame.getState() == MessageFrame.State.EXCEPTIONAL_HALT) {
+      /*LOG*/System.out.println(" >>> [AbstractMessageProcessor] EXCEPTIONAL_HALT");
       exceptionalHalt(frame);
     }
 
     if (frame.getState() == MessageFrame.State.REVERT) {
+      /*LOG*/System.out.println(" >>> [AbstractMessageProcessor] REVERT");
       revert(frame);
     }
 
     if (frame.getState() == MessageFrame.State.COMPLETED_SUCCESS) {
+      /*LOG*/System.out.println(" >>> [AbstractMessageProcessor] COMPLETED_SUCCESS");
       completedSuccess(frame);
     }
 
     if (frame.getState() == MessageFrame.State.COMPLETED_FAILED) {
+      /*LOG*/System.out.println(" >>> [AbstractMessageProcessor] COMPLETED_FAILED");
       completedFailed(frame);
     }
   }

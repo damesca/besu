@@ -259,6 +259,9 @@ public class PrivateTransactionProcessor {
   private void process(final MessageFrame frame, final OperationTracer operationTracer) {
     final AbstractMessageProcessor executor = getMessageProcessor(frame.getType());
 
+    /*LOG*/System.out.println(" >>> [PrivateTransactionProcessor] process() frame.getType()");
+    /*LOG*/System.out.println(frame.getType());
+
     executor.process(frame, operationTracer);
   }
 

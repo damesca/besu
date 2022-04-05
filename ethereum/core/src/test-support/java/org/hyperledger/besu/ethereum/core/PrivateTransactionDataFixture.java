@@ -162,7 +162,7 @@ public class PrivateTransactionDataFixture {
         privateTransaction.getPrivacyGroupId().isPresent()
             ? privateTransaction.getPrivacyGroupId().get().toBase64String()
             : "",
-        null);
+        null, null);
   }
 
   public static ReceiveResponse generateVersionedReceiveResponse(
@@ -176,7 +176,7 @@ public class PrivateTransactionDataFixture {
         privateTransaction.getPrivacyGroupId().isPresent()
             ? privateTransaction.getPrivacyGroupId().get().toBase64String()
             : "",
-        null);
+        null, null);
   }
 
   public static ReceiveResponse generateAddToGroupReceiveResponse(
@@ -192,7 +192,7 @@ public class PrivateTransactionDataFixture {
     return new ReceiveResponse(
         rlpOutput.encoded().toBase64String().getBytes(UTF_8),
         privateTransaction.getPrivacyGroupId().orElse(Bytes.EMPTY).toBase64String(),
-        null);
+        null, null);
   }
 
   public static List<PrivateTransactionWithMetadata> generateAddBlobResponse(

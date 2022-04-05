@@ -97,6 +97,7 @@ public abstract class AbstractEeaSendRawTransaction implements JsonRpcMethod {
       final Transaction privateMarkerTransaction =
           createPrivateMarkerTransaction(Address.fromPlugin(sender), privateTransaction, user);
 
+      /*LOG*/System.out.println(" >>> [AbstractEeaSendRawTransaction] transactionPool.addLocalTransaction(pmt)");
       /*LOG*/System.out.println(privateMarkerTransaction.toString());
 
       return transactionPool

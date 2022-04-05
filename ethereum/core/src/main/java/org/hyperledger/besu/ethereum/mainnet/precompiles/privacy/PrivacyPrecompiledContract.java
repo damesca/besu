@@ -148,6 +148,8 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
     final Bytes32 privacyGroupId =
         Bytes32.wrap(Bytes.fromBase64String(receiveResponse.getPrivacyGroupId()));
 
+    final String privateOutput = receiveResponse.getPrivateOutput();
+
     try {
       if (privateTransaction.getPrivateFor().isEmpty()
           && !enclave
@@ -197,9 +199,27 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
         processPrivateTransaction(
             messageFrame, privateTransaction, privacyGroupId, privateWorldStateUpdater);
 
+    // DONE: modifiedResult to test if changing the TransactionProcessingResult is acceptable
+    
+    TransactionProcessingResult modifiedResult;
+    if(!"".equals(privateOutput)) {
+      modifiedResult = new TransactionProcessingResult(
+        result.getStatus(),
+        result.getLogs(),
+        result.getEstimateGasUsedByTransaction(),
+        result.getGasRemaining(),
+        Bytes.fromHexString(privateOutput),
+        result.getValidationResult(),
+        result.getRevertReason()
+      );
+    } else {
+      modifiedResult = result;
+    }
+    
+
     /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] result.getOutput()");
     /*LOG*/System.out.println(result.getOutput().toHexString());
-    /*LOG*/System.out.println("result.isInvalid()");
+    /*LOG*/System.out.println(" >>> result.isInvalid()");
     /*LOG*/System.out.println(result.isInvalid());
     List<Log> logs = result.getLogs();
     for (Log log : logs) {
@@ -213,7 +233,7 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
           pmtHash,
           result.getValidationResult().getErrorMessage());
 
-      privateMetadataUpdater.putTransactionReceipt(pmtHash, new PrivateTransactionReceipt(result));
+      privateMetadataUpdater.putTransactionReceipt(pmtHash, new PrivateTransactionReceipt(/*result*/ modifiedResult));
 
       return Bytes.EMPTY;
     }
@@ -223,10 +243,10 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
       disposablePrivateState.persist(null);
 
       storePrivateMetadata(
-          pmtHash, privacyGroupId, disposablePrivateState, privateMetadataUpdater, result);
+          pmtHash, privacyGroupId, disposablePrivateState, privateMetadataUpdater, /*result*/ modifiedResult);
     }
 
-    return result.getOutput();
+    return /*result*/modifiedResult.getOutput();
   }
 
   protected void maybeApplyGenesisToPrivateWorldState(
@@ -293,6 +313,8 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
       /*LOG*/System.out.println(" ## getSenderKey");
       /*LOG*/System.out.println(receiveResponse.getSenderKey());
       /*LOG*/System.out.println(" ## payload");
+      /*LOG*/System.out.println(" ## privateOutput");
+      /*LOG*/System.out.println(receiveResponse.getPrivateOutput());
       ///*LOG*/System.out.println(Bytes.wrap(receiveResponse.getPayload()).toHexString());
     } catch (final EnclaveServerException e) {
       throw new IllegalStateException(
