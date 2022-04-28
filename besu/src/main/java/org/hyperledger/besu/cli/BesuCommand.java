@@ -2348,6 +2348,7 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
       privacyParametersBuilder.setPrivateKeyPath(privateMarkerTransactionSigningKeyPath);
       privacyParametersBuilder.setStorageProvider(
           privacyKeyStorageProvider(keyValueStorageName + "-privacy"));
+      // DONE: privacyKeyStorageProvider has to include extendedPrivacyStorage
       if (isPrivacyTlsEnabled) {
         privacyParametersBuilder.setPrivacyKeyStoreFile(privacyKeyStoreFile);
         privacyParametersBuilder.setPrivacyKeyStorePasswordFile(privacyKeyStorePasswordFile);
@@ -2395,6 +2396,7 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
   }
 
   private PrivacyKeyValueStorageProvider privacyKeyStorageProvider(final String name) {
+    // Here is where the new ExtendedPrivacyStorage is created
     return new PrivacyKeyValueStorageProviderBuilder()
         .withStorageFactory(privacyKeyValueStorageFactory(name))
         .withCommonConfiguration(pluginCommonConfiguration)

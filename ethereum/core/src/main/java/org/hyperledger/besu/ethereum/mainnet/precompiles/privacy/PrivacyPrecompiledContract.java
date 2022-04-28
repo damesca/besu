@@ -25,6 +25,7 @@ import org.hyperledger.besu.enclave.EnclaveClientException;
 import org.hyperledger.besu.enclave.EnclaveConfigurationException;
 import org.hyperledger.besu.enclave.EnclaveIOException;
 import org.hyperledger.besu.enclave.EnclaveServerException;
+import org.hyperledger.besu.enclave.types.ExtendedPrivacyResponse;
 import org.hyperledger.besu.enclave.types.ReceiveResponse;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.MutableWorldState;
@@ -33,6 +34,7 @@ import org.hyperledger.besu.ethereum.core.ProcessableBlockHeader;
 import org.hyperledger.besu.ethereum.privacy.PrivateStateGenesisAllocator;
 import org.hyperledger.besu.ethereum.privacy.PrivateStateRootResolver;
 import org.hyperledger.besu.ethereum.privacy.PrivateTransaction;
+import org.hyperledger.besu.ethereum.privacy.PsiPrivateDataHandler;
 import org.hyperledger.besu.ethereum.privacy.PrivateTransactionProcessor;
 import org.hyperledger.besu.ethereum.privacy.PrivateTransactionReceipt;
 import org.hyperledger.besu.ethereum.privacy.storage.PrivateMetadataUpdater;
@@ -49,7 +51,11 @@ import org.hyperledger.besu.evm.tracing.OperationTracer;
 import org.hyperledger.besu.evm.worldstate.WorldUpdater;
 import org.hyperledger.besu.plugin.data.Hash;
 
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
@@ -105,6 +111,8 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   @Override
   public Bytes compute(final Bytes input, final MessageFrame messageFrame) {
 
+    /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] compute()");
+
     if (skipContractExecution(messageFrame)) {
       return Bytes.EMPTY;
     }
@@ -126,6 +134,56 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
             Bytes.wrap(Base64.getDecoder().decode(receiveResponse.getPayload())), false);
     final PrivateTransaction privateTransaction =
         PrivateTransaction.readFrom(bytesValueRLPInput.readAsRlp());
+    
+    /*LOG*/System.out.println(privateTransaction.toString());
+
+    Bytes privateResult = null;
+    // Handle extendedPrivacy
+    if (privateTransaction.hasExtendedPrivacy()) {
+      /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] hasExtendedPrivacy()");
+
+      // Get type of extendedPrivacy
+      Bytes extendedPrivacy = privateTransaction.getExtendedPrivacy().get();
+      Bytes privateArgs;
+      if(extendedPrivacy.compareTo(Bytes.fromHexString("0x01")) == 0) {
+        // PSI type
+        /*LOG*/System.out.println(" >>> extendedPrivacy type: PSI");
+        // TODO: retrieve privateArgs from privateState
+        privateArgs = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000002");
+
+        // If it is not contract creation
+        if(privateTransaction.getPrivateFor().isPresent()) {
+          final ArrayList<String> privateFor = new ArrayList<>();
+          privateFor.addAll(
+            privateTransaction.getPrivateFor().get().stream()
+                .map(Bytes::toBase64String)
+                .collect(Collectors.toList()));
+          String[] arrayPrivateFor = new String[privateFor.size()];
+          arrayPrivateFor = privateFor.toArray(arrayPrivateFor);
+
+          // This derives to a communication Tessera2Tessera, where the privacy protocol is executed.
+          ExtendedPrivacyResponse extResponse = enclave.extendedPrivacySend(
+            extendedPrivacy.toArray(),
+            privateArgs.toArray(),
+            key.getBytes(Charset.defaultCharset()),
+            arrayPrivateFor
+          );
+          /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] extResponse");
+          /*LOG*/System.out.println(new String(extResponse.getResult(), Charset.defaultCharset()));
+          privateResult = Bytes.wrap(extResponse.getResult());
+        } else {
+          privateResult = Bytes.fromHexString("0x00");
+        }
+
+      }else{
+        /*LOG*/System.out.println(" >>> extendedPrivacy type: other");
+        privateArgs = Bytes.fromHexString("0x00");
+        privateResult = Bytes.fromHexString("0x00");
+      }
+
+    } else {
+      privateResult = Bytes.fromHexString("0x00");
+    }
 
     final Bytes privateFrom = privateTransaction.getPrivateFrom();
     if (!privateFromMatchesSenderKey(privateFrom, receiveResponse.getSenderKey())) {
@@ -175,6 +233,23 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
     final TransactionProcessingResult result =
         processPrivateTransaction(
             messageFrame, privateTransaction, privacyGroupId, privateWorldStateUpdater);
+    
+    final TransactionProcessingResult modifiedResult;
+    if(privateResult.compareTo(Bytes.fromHexString("0x00")) != 0) {
+      /*LOG*/System.out.println(" COMPARISON OK");
+      modifiedResult = new TransactionProcessingResult(
+        result.getStatus(),
+        result.getLogs(),
+        result.getEstimateGasUsedByTransaction(),
+        result.getGasRemaining(),
+        privateResult,
+        result.getValidationResult(),
+        result.getRevertReason()
+      );
+    } else {
+      modifiedResult = result;
+    }
+
 
     if (result.isInvalid() || !result.isSuccessful()) {
       LOG.error(
@@ -182,7 +257,7 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
           pmtHash,
           result.getValidationResult().getErrorMessage());
 
-      privateMetadataUpdater.putTransactionReceipt(pmtHash, new PrivateTransactionReceipt(result));
+      privateMetadataUpdater.putTransactionReceipt(pmtHash, new PrivateTransactionReceipt(/*result*/modifiedResult));
 
       return Bytes.EMPTY;
     }
@@ -192,10 +267,10 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
       disposablePrivateState.persist(null);
 
       storePrivateMetadata(
-          pmtHash, privacyGroupId, disposablePrivateState, privateMetadataUpdater, result);
+          pmtHash, privacyGroupId, disposablePrivateState, privateMetadataUpdater, /*result*/modifiedResult);
     }
 
-    return result.getOutput();
+    return /*result*/modifiedResult.getOutput();
   }
 
   protected void maybeApplyGenesisToPrivateWorldState(

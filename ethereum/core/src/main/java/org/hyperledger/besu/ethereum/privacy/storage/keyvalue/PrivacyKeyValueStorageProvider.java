@@ -32,6 +32,7 @@ public class PrivacyKeyValueStorageProvider implements PrivacyStorageProvider {
   private final KeyValueStorage privateWorldStateKeyValueStorage;
   private final KeyValueStorage privateWorldStatePreimageKeyValueStorage;
   private final KeyValueStorage privateStateKeyValueStorage;
+  private final KeyValueStorage extendedPrivacyKeyValueStorage;
 
   private final int factoryVersion;
 
@@ -39,11 +40,13 @@ public class PrivacyKeyValueStorageProvider implements PrivacyStorageProvider {
       final KeyValueStorage privateWorldStateKeyValueStorage,
       final KeyValueStorage privateWorldStatePreimageKeyValueStorage,
       final KeyValueStorage privateStateKeyValueStorage,
+      final KeyValueStorage extendedPrivacyKeyValueStorage,
       final int factoryVersion) {
     this.privateWorldStateKeyValueStorage = privateWorldStateKeyValueStorage;
     this.privateWorldStatePreimageKeyValueStorage = privateWorldStatePreimageKeyValueStorage;
     this.privateStateKeyValueStorage = privateStateKeyValueStorage;
     this.factoryVersion = factoryVersion;
+    this.extendedPrivacyKeyValueStorage = extendedPrivacyKeyValueStorage;
   }
 
   @Override
@@ -61,6 +64,11 @@ public class PrivacyKeyValueStorageProvider implements PrivacyStorageProvider {
     return new PrivateStateKeyValueStorage(privateStateKeyValueStorage);
   }
 
+  // TODO: createExtendedPrivacyStorage()
+  //public ExtendedPrivacyStorage createExtendedPrivacyStorage() {
+  //  return new ExtendedPrivacyKeyValueStorage(extendedPrivacyKeyValueStorage);
+  //}
+
   @Override
   public LegacyPrivateStateStorage createLegacyPrivateStateStorage() {
     return new LegacyPrivateStateKeyValueStorage(privateStateKeyValueStorage);
@@ -76,5 +84,6 @@ public class PrivacyKeyValueStorageProvider implements PrivacyStorageProvider {
     privateWorldStateKeyValueStorage.close();
     privateWorldStatePreimageKeyValueStorage.close();
     privateStateKeyValueStorage.close();
+    extendedPrivacyKeyValueStorage.close();
   }
 }

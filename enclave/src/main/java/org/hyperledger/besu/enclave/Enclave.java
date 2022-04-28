@@ -26,8 +26,11 @@ import org.hyperledger.besu.enclave.types.RetrievePrivacyGroupRequest;
 import org.hyperledger.besu.enclave.types.SendRequestBesu;
 import org.hyperledger.besu.enclave.types.SendRequestLegacy;
 import org.hyperledger.besu.enclave.types.SendResponse;
+import org.hyperledger.besu.enclave.types.ExtendedPrivacyRequest;
+import org.hyperledger.besu.enclave.types.ExtendedPrivacyResponse;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -54,6 +57,23 @@ public class Enclave {
     } catch (final Exception e) {
       return false;
     }
+  }
+
+  public ExtendedPrivacyResponse extendedPrivacySend(
+      final byte[] protocolId,
+      final byte[] privateArgs,
+      final byte[] pmt,
+      final String[] recipients) {
+    /*LOG*/System.out.println(" >>> [Enclave] sendExtendedPrivacyRequest()");
+    final ExtendedPrivacyRequest request = new ExtendedPrivacyRequest(protocolId, privateArgs, pmt, recipients);
+    ExtendedPrivacyResponse res = post(
+        JSON,
+        request,
+        "/extendedPrivacy",
+        (statusCode, body) -> handleJsonResponse(statusCode, body, ExtendedPrivacyResponse.class));
+    /*LOG*/System.out.println(">>> [Enclave] -> result: ");
+    /*LOG*/System.out.println(new String(res.getResult(), Charset.defaultCharset()));
+    return res;
   }
 
   public SendResponse send(

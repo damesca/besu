@@ -80,10 +80,60 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
       final PrivateTransaction privateTransaction,
       final String privacyUserId,
       final Optional<PrivacyGroup> maybePrivacyGroup) {
+    /*LOG*/System.out.println(">>> [RestrictedDefaultPrivacyController] createPrivateMarkerTransactionPayload()");
     LOG.trace("Storing private transaction in enclave");
-    final SendResponse sendResponse =
-        sendRequest(privateTransaction, privacyUserId, maybePrivacyGroup);
-    return sendResponse.getKey();
+
+    PrivateTransaction toSendTransaction;
+    if(privateTransaction.hasExtendedPrivacy()){
+      // set privateArgs to 0x00
+      toSendTransaction = blindPrivateTransaction(privateTransaction);
+    } else {
+      toSendTransaction = privateTransaction;
+    }
+
+    final SendResponse sendResponse = 
+        sendRequest(toSendTransaction, privacyUserId, maybePrivacyGroup);
+
+    String key = sendResponse.getKey();
+
+    if(privateTransaction.hasExtendedPrivacy()) {
+      Bytes privateArgs = privateTransaction.getPrivateArgs().get();
+      LOG.info("Saving into privateStorage ({}, {})", key, privateArgs.toHexString());
+      // TODO: save into storage (key, privateArgs)
+    }
+
+    return key;
+  }
+
+  private PrivateTransaction blindPrivateTransaction(final PrivateTransaction privateTransaction) {
+
+    Bytes privateArgs = privateTransaction.getPrivateArgs().get();
+    byte[] byteArgs = new byte[privateArgs.toArray().length];
+    for (int i = 0; i < privateArgs.toArray().length; i++) {
+      byteArgs[i] = 0;
+    }
+    Bytes blindedPrivateArgs = Bytes.of(byteArgs);
+
+    PrivateTransaction.Builder builder = PrivateTransaction.builder()
+        .gasLimit(privateTransaction.getGasLimit())
+        .gasPrice(privateTransaction.getGasPrice())
+        .nonce(privateTransaction.getNonce())
+        .payload(privateTransaction.getPayload())
+        .privateFrom(privateTransaction.getPrivateFrom())
+        .restriction(privateTransaction.getRestriction())
+        .sender(privateTransaction.getSender())
+        .signature(privateTransaction.getSignature())
+        .value(privateTransaction.getValue());
+
+    privateTransaction.getChainId().ifPresent(builder::chainId);
+    privateTransaction.getPrivacyGroupId().ifPresent(builder::privacyGroupId);
+    privateTransaction.getPrivateFor().ifPresent(builder::privateFor);
+    privateTransaction.getTo().ifPresent(builder::to);
+    privateTransaction.getExtendedPrivacy().ifPresent(builder::extendedPrivacy);
+    builder.privateArgs(blindedPrivateArgs);
+
+    PrivateTransaction blindedTransaction = builder.build();
+    return blindedTransaction;
   }
 
   @Override
@@ -122,7 +172,9 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
       final PrivacyGroup privacyGroup = maybePrivacyGroup.get();
       if (privacyGroup.getType() == PrivacyGroup.Type.PANTHEON) {
         // offchain privacy group
+        /*LOG*/System.out.println("Before writeTo(rlpOutput)");
         privateTransaction.writeTo(rlpOutput);
+        /*LOG*/System.out.println("Correctly written");
         return enclave.send(
             rlpOutput.encoded().toBase64String(),
             privacyUserId,
