@@ -19,10 +19,12 @@ import org.hyperledger.besu.enclave.types.PrivacyGroup;
 import org.hyperledger.besu.enclave.types.SendResponse;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.PrivacyParameters;
+import org.hyperledger.besu.ethereum.privacy.storage.ExtendedPrivacyStorage;
 import org.hyperledger.besu.ethereum.privacy.storage.PrivateStateStorage;
 import org.hyperledger.besu.ethereum.rlp.BytesValueRLPOutput;
 
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +38,8 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
 
   private static final Logger LOG =
       LoggerFactory.getLogger(RestrictedDefaultPrivacyController.class);
+
+  private final ExtendedPrivacyStorage extendedPrivacyStorage;
 
   public RestrictedDefaultPrivacyController(
       final Blockchain blockchain,
@@ -52,7 +56,8 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
         privateTransactionSimulator,
         privateNonceProvider,
         privateWorldStateReader,
-        privacyParameters.getPrivateStateRootResolver());
+        privacyParameters.getPrivateStateRootResolver(),
+        privacyParameters.getExtendedPrivacyStorage());
   }
 
   public RestrictedDefaultPrivacyController(
@@ -63,7 +68,8 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
       final PrivateTransactionSimulator privateTransactionSimulator,
       final PrivateNonceProvider privateNonceProvider,
       final PrivateWorldStateReader privateWorldStateReader,
-      final PrivateStateRootResolver privateStateRootResolver) {
+      final PrivateStateRootResolver privateStateRootResolver,
+      final ExtendedPrivacyStorage extendedPrivacyStorage) {
     super(
         blockchain,
         privateStateStorage,
@@ -73,6 +79,7 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
         privateNonceProvider,
         privateWorldStateReader,
         privateStateRootResolver);
+    this.extendedPrivacyStorage = extendedPrivacyStorage;
   }
 
   @Override
@@ -100,6 +107,17 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
       Bytes privateArgs = privateTransaction.getPrivateArgs().get();
       LOG.info("Saving into privateStorage ({}, {})", key, privateArgs.toHexString());
       // TODO: save into storage (key, privateArgs)
+      ExtendedPrivacyStorage.Updater updater = extendedPrivacyStorage.updater();
+      updater.putPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))), privateArgs);
+      updater.commit();
+      /*LOG*/System.out.println(key);
+      Optional<Bytes> privArgs = extendedPrivacyStorage.getPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))));
+      if(privArgs.isPresent()) {
+        /*LOG*/System.out.println(" IS PRESENT");
+        /*LOG*/System.out.println(privArgs.get().toHexString());
+      } else {
+        /*LOG*/System.out.println(" NOT PRESENT");
+      }
     }
 
     return key;

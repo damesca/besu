@@ -14,6 +14,8 @@
  */
 package org.hyperledger.besu.ethereum.privacy.storage.keyvalue;
 
+import org.hyperledger.besu.ethereum.privacy.storage.ExtendedPrivacyKeyValueStorage;
+import org.hyperledger.besu.ethereum.privacy.storage.ExtendedPrivacyStorage;
 import org.hyperledger.besu.ethereum.privacy.storage.LegacyPrivateStateKeyValueStorage;
 import org.hyperledger.besu.ethereum.privacy.storage.LegacyPrivateStateStorage;
 import org.hyperledger.besu.ethereum.privacy.storage.PrivacyStorageProvider;
@@ -64,10 +66,10 @@ public class PrivacyKeyValueStorageProvider implements PrivacyStorageProvider {
     return new PrivateStateKeyValueStorage(privateStateKeyValueStorage);
   }
 
-  // TODO: createExtendedPrivacyStorage()
-  //public ExtendedPrivacyStorage createExtendedPrivacyStorage() {
-  //  return new ExtendedPrivacyKeyValueStorage(extendedPrivacyKeyValueStorage);
-  //}
+  @Override
+  public ExtendedPrivacyStorage createExtendedPrivacyStorage() {
+    return new ExtendedPrivacyKeyValueStorage(extendedPrivacyKeyValueStorage);
+  }
 
   @Override
   public LegacyPrivateStateStorage createLegacyPrivateStateStorage() {

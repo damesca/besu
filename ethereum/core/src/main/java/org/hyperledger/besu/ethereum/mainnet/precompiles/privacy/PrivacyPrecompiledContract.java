@@ -37,6 +37,7 @@ import org.hyperledger.besu.ethereum.privacy.PrivateTransaction;
 import org.hyperledger.besu.ethereum.privacy.PsiPrivateDataHandler;
 import org.hyperledger.besu.ethereum.privacy.PrivateTransactionProcessor;
 import org.hyperledger.besu.ethereum.privacy.PrivateTransactionReceipt;
+import org.hyperledger.besu.ethereum.privacy.storage.ExtendedPrivacyStorage;
 import org.hyperledger.besu.ethereum.privacy.storage.PrivateMetadataUpdater;
 import org.hyperledger.besu.ethereum.privacy.storage.PrivateTransactionMetadata;
 import org.hyperledger.besu.ethereum.processing.TransactionProcessingResult;
@@ -55,6 +56,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.tuweni.bytes.Bytes;
@@ -69,6 +71,8 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   private final PrivateStateGenesisAllocator privateStateGenesisAllocator;
   PrivateTransactionProcessor privateTransactionProcessor;
 
+  private final ExtendedPrivacyStorage extendedPrivacyStorage;
+
   private static final Logger LOG = LoggerFactory.getLogger(PrivacyPrecompiledContract.class);
 
   public PrivacyPrecompiledContract(
@@ -81,8 +85,24 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
         privacyParameters.getPrivateWorldStateArchive(),
         privacyParameters.getPrivateStateRootResolver(),
         privacyParameters.getPrivateStateGenesisAllocator(),
-        name);
+        name,
+        privacyParameters.getExtendedPrivacyStorage());
   }
+
+  protected PrivacyPrecompiledContract(
+    final GasCalculator gasCalculator,
+    final Enclave enclave,
+    final WorldStateArchive worldStateArchive,
+    final PrivateStateRootResolver privateStateRootResolver,
+    final PrivateStateGenesisAllocator privateStateGenesisAllocator,
+    final String name) {
+  super(name, gasCalculator);
+  this.enclave = enclave;
+  this.privateWorldStateArchive = worldStateArchive;
+  this.privateStateRootResolver = privateStateRootResolver;
+  this.privateStateGenesisAllocator = privateStateGenesisAllocator;
+  this.extendedPrivacyStorage = null;
+}
 
   protected PrivacyPrecompiledContract(
       final GasCalculator gasCalculator,
@@ -90,12 +110,14 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
       final WorldStateArchive worldStateArchive,
       final PrivateStateRootResolver privateStateRootResolver,
       final PrivateStateGenesisAllocator privateStateGenesisAllocator,
-      final String name) {
+      final String name,
+      final ExtendedPrivacyStorage extendedPrivacyStorage) {
     super(name, gasCalculator);
     this.enclave = enclave;
     this.privateWorldStateArchive = worldStateArchive;
     this.privateStateRootResolver = privateStateRootResolver;
     this.privateStateGenesisAllocator = privateStateGenesisAllocator;
+    this.extendedPrivacyStorage = extendedPrivacyStorage;
   }
 
   public void setPrivateTransactionProcessor(
@@ -149,6 +171,14 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
         // PSI type
         /*LOG*/System.out.println(" >>> extendedPrivacy type: PSI");
         // TODO: retrieve privateArgs from privateState
+        /*LOG*/System.out.println(key);
+        Optional<Bytes> privArgs = extendedPrivacyStorage.getPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))));
+        if(privArgs.isPresent()) {
+          /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] privateArgs");
+          /*LOG*/System.out.println(privArgs.get().toString());
+        } else {
+          /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] privateArgs NOT PRESENT");
+        }
         privateArgs = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // If it is not contract creation
@@ -158,18 +188,26 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
             privateTransaction.getPrivateFor().get().stream()
                 .map(Bytes::toBase64String)
                 .collect(Collectors.toList()));
-          String[] arrayPrivateFor = new String[privateFor.size()];
-          arrayPrivateFor = privateFor.toArray(arrayPrivateFor);
+          String[] recipients = new String[privateFor.size() + 1];
+          // recipients = [privateFrom, privateFor(0), privateFor(1), ...]
+          recipients[0] = privateTransaction.getPrivateFrom().toBase64String();
+          for(int i = 1; i < recipients.length; i++) {
+            recipients[i] = privateFor.get(i-1);
+          }
+          /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] recipients");
+          for(String item : recipients) {
+            /*LOG*/System.out.println(item);
+          }
 
           // This derives to a communication Tessera2Tessera, where the privacy protocol is executed.
           ExtendedPrivacyResponse extResponse = enclave.extendedPrivacySend(
             extendedPrivacy.toArray(),
             privateArgs.toArray(),
             key.getBytes(Charset.defaultCharset()),
-            arrayPrivateFor
+            recipients
           );
           /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] extResponse");
-          /*LOG*/System.out.println(new String(extResponse.getResult(), Charset.defaultCharset()));
+          /*LOG*/System.out.println(Bytes.wrap(extResponse.getResult()).toHexString());
           privateResult = Bytes.wrap(extResponse.getResult());
         } else {
           privateResult = Bytes.fromHexString("0x00");
@@ -235,6 +273,8 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
             messageFrame, privateTransaction, privacyGroupId, privateWorldStateUpdater);
     
     final TransactionProcessingResult modifiedResult;
+    /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] privateResult");
+    /*LOG*/System.out.println(privateResult.toHexString());
     if(privateResult.compareTo(Bytes.fromHexString("0x00")) != 0) {
       /*LOG*/System.out.println(" COMPARISON OK");
       modifiedResult = new TransactionProcessingResult(
@@ -269,6 +309,9 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
       storePrivateMetadata(
           pmtHash, privacyGroupId, disposablePrivateState, privateMetadataUpdater, /*result*/modifiedResult);
     }
+
+    /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] result.getOutput()");
+    /*LOG*/System.out.println(modifiedResult.getOutput());
 
     return /*result*/modifiedResult.getOutput();
   }
