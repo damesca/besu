@@ -14,8 +14,13 @@ public class ExtendedPrivacyKeyValueStorage implements ExtendedPrivacyStorage {
   }
 
   @Override
-  public Optional<Bytes> getPrivateArgs(final Bytes pmtHash) {
-    return get(pmtHash);
+  public Optional<Bytes> getPrivateArgs(final Bytes key) {
+    return get(key);
+  }
+
+  @Override
+  public Optional<Bytes> getKeyByContractAddr(final Bytes contractAddr) {
+    return get(contractAddr);
   }
 
   private Optional<Bytes> get(final Bytes key) {
@@ -37,8 +42,15 @@ public class ExtendedPrivacyKeyValueStorage implements ExtendedPrivacyStorage {
 
     @Override
     public ExtendedPrivacyStorage.Updater putPrivateArgs(
-            final Bytes pmtHash, final Bytes privateArgs) {
-        set(pmtHash, privateArgs); 
+            final Bytes key, final Bytes privateArgs) {
+        set(key, privateArgs); 
+        return this;
+    }
+
+    @Override
+    public ExtendedPrivacyStorage.Updater putKeyByContractAddr(
+            final Bytes contractAddr, final Bytes key) {
+        set(contractAddr, key);
         return this;
     }
 

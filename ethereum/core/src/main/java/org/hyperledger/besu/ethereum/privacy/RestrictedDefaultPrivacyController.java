@@ -104,9 +104,18 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
     String key = sendResponse.getKey();
 
     if(privateTransaction.hasExtendedPrivacy()) {
+      /*LOG*/System.out.println(" >>> [RestrictedDefaultPrivacyController] hasExtendedPrivacy");
       Bytes privateArgs = privateTransaction.getPrivateArgs().get();
+      // TODO: modify privateArgs to save only the values
+      if(privateTransaction.isContractCreation()) {
+        privateArgs = extractArgumentsContractCreation(privateArgs, true);
+        /*LOG*/System.out.println(privateArgs.toHexString());
+      } else {
+        privateArgs = extractArgumentsContractCreation(privateArgs, false);
+        /*LOG*/System.out.println(privateArgs.toHexString());
+      }
       LOG.info("Saving into privateStorage ({}, {})", key, privateArgs.toHexString());
-      // TODO: save into storage (key, privateArgs)
+      // DONE: save into storage (key, privateArgs)
       ExtendedPrivacyStorage.Updater updater = extendedPrivacyStorage.updater();
       updater.putPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))), privateArgs);
       updater.commit();
@@ -122,6 +131,46 @@ public class RestrictedDefaultPrivacyController extends AbstractRestrictedPrivac
 
     return key;
   }
+  
+  private Bytes extractArgumentsContractCreation(final Bytes privateArgs, final boolean isContractCreation) {
+    
+    int referenceLength = 64;
+
+    List<String> listPrivateArgs = new ArrayList<>();
+
+    String strPrivateArgs = privateArgs.toHexString().substring(2, privateArgs.toHexString().length());
+    /*LOG*/System.out.println(strPrivateArgs);
+
+    int items = strPrivateArgs.length() / referenceLength;
+    /*LOG*/System.out.println(items);
+    for(int i = 0; i < items; i++) {
+      /*LOG*/System.out.println(strPrivateArgs.substring(i * referenceLength, (i + 1) * referenceLength));
+      listPrivateArgs.add(strPrivateArgs.substring(i * referenceLength, (i + 1) * referenceLength));
+    }
+    List<String> resultList = new ArrayList<>();
+    if(isContractCreation) {
+      int length = Integer.parseInt(listPrivateArgs.get(4));
+      /*LOG*/System.out.println(length);
+      for(int j = 5; j < 5 + length; j++) {
+        resultList.add(listPrivateArgs.get(j));
+        /*LOG*/System.out.println(listPrivateArgs.get(j));
+      }
+    } else {
+      int length = Integer.parseInt(listPrivateArgs.get(1));
+      /*LOG*/System.out.println(length);
+      for(int j = 2; j < 2 + length; j++) {
+        resultList.add(listPrivateArgs.get(j));
+        /*LOG*/System.out.println(listPrivateArgs.get(j));
+      }
+    }
+    String res = "0x";
+    for(String x : resultList) {
+      res = res + x;
+    }
+
+    return Bytes.fromHexString(res);
+  }
+  
 
   private PrivateTransaction blindPrivateTransaction(final PrivateTransaction privateTransaction) {
 

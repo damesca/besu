@@ -6,14 +6,19 @@ import org.apache.tuweni.bytes.Bytes;
 
 public interface ExtendedPrivacyStorage {
     
-    Optional<Bytes> getPrivateArgs(Bytes pmtHash);
+    Optional<Bytes> getPrivateArgs(Bytes key);
+
+    Optional<Bytes> getKeyByContractAddr(Bytes contractAddr);
 
     Updater updater();
 
     interface Updater {
 
         Updater putPrivateArgs(
-            Bytes pmtHash, Bytes privateArgs);
+            Bytes key, Bytes privateArgs);
+
+        Updater putKeyByContractAddr(
+            Bytes contractAddr, Bytes key);
 
         void commit();
 

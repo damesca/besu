@@ -20,6 +20,7 @@ import static org.hyperledger.besu.ethereum.mainnet.PrivateStateUtils.KEY_PRIVAT
 import static org.hyperledger.besu.ethereum.mainnet.PrivateStateUtils.KEY_TRANSACTION_HASH;
 import static org.hyperledger.besu.ethereum.privacy.PrivateStateRootResolver.EMPTY_ROOT_HASH;
 
+import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.enclave.Enclave;
 import org.hyperledger.besu.enclave.EnclaveClientException;
 import org.hyperledger.besu.enclave.EnclaveConfigurationException;
@@ -38,6 +39,7 @@ import org.hyperledger.besu.ethereum.privacy.PsiPrivateDataHandler;
 import org.hyperledger.besu.ethereum.privacy.PrivateTransactionProcessor;
 import org.hyperledger.besu.ethereum.privacy.PrivateTransactionReceipt;
 import org.hyperledger.besu.ethereum.privacy.storage.ExtendedPrivacyStorage;
+import org.hyperledger.besu.ethereum.privacy.storage.PrivateBlockMetadata;
 import org.hyperledger.besu.ethereum.privacy.storage.PrivateMetadataUpdater;
 import org.hyperledger.besu.ethereum.privacy.storage.PrivateTransactionMetadata;
 import org.hyperledger.besu.ethereum.processing.TransactionProcessingResult;
@@ -49,6 +51,7 @@ import org.hyperledger.besu.evm.frame.MessageFrame;
 import org.hyperledger.besu.evm.gascalculator.GasCalculator;
 import org.hyperledger.besu.evm.precompile.AbstractPrecompiledContract;
 import org.hyperledger.besu.evm.tracing.OperationTracer;
+import org.hyperledger.besu.evm.worldstate.WorldState;
 import org.hyperledger.besu.evm.worldstate.WorldUpdater;
 import org.hyperledger.besu.plugin.data.Hash;
 
@@ -170,19 +173,38 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
       if(extendedPrivacy.compareTo(Bytes.fromHexString("0x01")) == 0) {
         // PSI type
         /*LOG*/System.out.println(" >>> extendedPrivacy type: PSI");
-        // TODO: retrieve privateArgs from privateState
-        /*LOG*/System.out.println(key);
-        Optional<Bytes> privArgs = extendedPrivacyStorage.getPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))));
-        if(privArgs.isPresent()) {
-          /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] privateArgs");
-          /*LOG*/System.out.println(privArgs.get().toString());
-        } else {
-          /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] privateArgs NOT PRESENT");
-        }
+
         privateArgs = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // If it is not contract creation
-        if(privateTransaction.getPrivateFor().isPresent()) {
+        //if(privateTransaction.getPrivateFor().isPresent()) {
+        if(privateTransaction.getTo().isPresent()) {
+
+          Optional<Bytes> possiblePrivateArgs = 
+            extendedPrivacyStorage.getPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))));
+
+          if(!possiblePrivateArgs.isPresent()) {
+            Optional<Bytes> retrievedKey = 
+              extendedPrivacyStorage.getKeyByContractAddr(
+                privateTransaction.getTo().get());
+            if(retrievedKey.isPresent()){
+              /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] RETRIEVED: key");
+              /*LOG*/System.out.println(retrievedKey.get().toBase64String());
+              Optional<Bytes> privArgs = 
+                extendedPrivacyStorage.getPrivateArgs(
+                  retrievedKey.get());
+              if(privArgs.isPresent()) {
+                /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] RETRIEVED: privateArgs");
+                /*LOG*/System.out.println(privArgs.get().toHexString());
+                privateArgs = privArgs.get();
+              } else {
+                /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] privateArgs NOT PRESENT");
+              }
+            }
+          } else {
+            privateArgs = possiblePrivateArgs.get();
+          }
+
           final ArrayList<String> privateFor = new ArrayList<>();
           privateFor.addAll(
             privateTransaction.getPrivateFor().get().stream()
@@ -200,6 +222,8 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
           }
 
           // This derives to a communication Tessera2Tessera, where the privacy protocol is executed.
+          /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] extendedPrivacySend");
+          /*LOG*/System.out.println(privateArgs.toHexString());
           ExtendedPrivacyResponse extResponse = enclave.extendedPrivacySend(
             extendedPrivacy.toArray(),
             privateArgs.toArray(),
@@ -308,6 +332,24 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
 
       storePrivateMetadata(
           pmtHash, privacyGroupId, disposablePrivateState, privateMetadataUpdater, /*result*/modifiedResult);
+    }
+
+    // If it is contractCreation and this is creator node, it must link privateArgs to contractAddr
+    if(privateTransaction.isContractCreation()) {
+      Optional<Bytes> possiblePrivateArgs = 
+        extendedPrivacyStorage.getPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))));
+      if(possiblePrivateArgs.isPresent()) {
+        Address contractAddr = Address.privateContractAddress(
+          privateTransaction.getSender(), 
+          privateTransaction.getNonce(), 
+          privacyGroupId);
+        /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] PrivateContractAddress");
+        /*LOG*/System.out.println(contractAddr.toHexString());
+
+        ExtendedPrivacyStorage.Updater updater = extendedPrivacyStorage.updater();
+        updater.putPrivateArgs(contractAddr, Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))));
+        updater.commit();
+      }
     }
 
     /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] result.getOutput()");
