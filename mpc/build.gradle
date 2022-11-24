@@ -1,0 +1,17 @@
+apply plugin: 'java-library'
+
+jar {
+    archiveBaseName = 'besu-mpc'
+    manifest {
+		attributes(
+			'Specification-Title': archiveBaseName,
+        	'Specification-Version': project.version,
+        	'Implementation-Title': archiveBaseName,
+        	'Implementation-Version': calculateVersion()
+        )
+  }
+}
+
+dependencies {
+	implementation files("/home/daniel/mpc4j-gradle/mpc4j-s2pc-pso/target/mpc4j-s2pc-pso-1.0.4-jar-with-dependencies.jar")
+}
