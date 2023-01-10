@@ -1,4 +1,5 @@
 dependencies {
+  api project(':psi')
   api project(':util')
   api project(':crypto')
   api 'org.slf4j:slf4j-api'

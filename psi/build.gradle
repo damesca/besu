@@ -1,0 +1,25 @@
+
+
+apply plugin: 'java-library'
+
+jar {
+  archiveBaseName = 'besu-psi'
+  manifest {
+    attributes(
+      'Specification-Title': archiveBaseName,
+      'Specification-Version': project.version,
+      'Implementation-Title': archiveBaseName,
+      'Implementation-Version': calculateVersion()
+      )
+  }
+}
+
+repositories {
+        
+     //maven { url "https://repository.apache.org/content/repositories/releases/" }
+     //maven { url "https://repo.maven.apache.org/maven2" }
+}
+
+dependencies {
+    implementation files('/home/daniel/mpc4j-gradle/mpc4j-s2pc-pso/target/mpc4j-s2pc-pso-1.0.4-jar-with-dependencies.jar')
+}

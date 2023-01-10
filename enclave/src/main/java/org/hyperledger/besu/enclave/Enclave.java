@@ -29,6 +29,8 @@ import org.hyperledger.besu.enclave.types.SendResponse;
 import org.hyperledger.besu.enclave.types.ExtendedPrivacyRequest;
 import org.hyperledger.besu.enclave.types.ExtendedPrivacyResponse;
 
+import org.hyperledger.besu.psi.PsiTest;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -73,6 +75,8 @@ public class Enclave {
         (statusCode, body) -> handleJsonResponse(statusCode, body, ExtendedPrivacyResponse.class));
     /*LOG*/System.out.println(">>> [Enclave] -> result: ");
     /*LOG*/System.out.println(new String(res.getResult(), Charset.defaultCharset()));
+    PsiTest psiTest = new PsiTest();
+    /*LOG*/System.out.println(psiTest.hello());
     return res;
   }
 
