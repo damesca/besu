@@ -75,8 +75,14 @@ public class Enclave {
         (statusCode, body) -> handleJsonResponse(statusCode, body, ExtendedPrivacyResponse.class));
     /*LOG*/System.out.println(">>> [Enclave] -> result: ");
     /*LOG*/System.out.println(new String(res.getResult(), Charset.defaultCharset()));
+    
+    // Section to test PSI Implementation
     PsiTest psiTest = new PsiTest();
     /*LOG*/System.out.println(psiTest.hello());
+    psiTest.setRpc(2, 5555);
+    /*LOG*/System.out.println(psiTest.getServerRpc());
+    /////////////////////
+    
     return res;
   }
 

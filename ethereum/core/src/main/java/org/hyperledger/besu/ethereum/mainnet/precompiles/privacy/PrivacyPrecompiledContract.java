@@ -165,81 +165,15 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
     Bytes privateResult = null;
     // Handle extendedPrivacy
     if (privateTransaction.hasExtendedPrivacy()) {
-      /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] hasExtendedPrivacy()");
+      /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] hasExtendedPrivacy");
 
       // Get type of extendedPrivacy
       Bytes extendedPrivacy = privateTransaction.getExtendedPrivacy().get();
-      Bytes privateArgs;
       if(extendedPrivacy.compareTo(Bytes.fromHexString("0x01")) == 0) {
         // PSI type
-        /*LOG*/System.out.println(" >>> extendedPrivacy type: PSI");
-
-        privateArgs = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000002");
-
-        // If it is not contract creation
-        //if(privateTransaction.getPrivateFor().isPresent()) {
-        if(privateTransaction.getTo().isPresent()) {
-
-          Optional<Bytes> possiblePrivateArgs = 
-            extendedPrivacyStorage.getPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))));
-
-          if(!possiblePrivateArgs.isPresent()) {
-            Optional<Bytes> retrievedKey = 
-              extendedPrivacyStorage.getKeyByContractAddr(
-                privateTransaction.getTo().get());
-            if(retrievedKey.isPresent()){
-              /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] RETRIEVED: key");
-              /*LOG*/System.out.println(retrievedKey.get().toBase64String());
-              Optional<Bytes> privArgs = 
-                extendedPrivacyStorage.getPrivateArgs(
-                  retrievedKey.get());
-              if(privArgs.isPresent()) {
-                /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] RETRIEVED: privateArgs");
-                /*LOG*/System.out.println(privArgs.get().toHexString());
-                privateArgs = privArgs.get();
-              } else {
-                /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] privateArgs NOT PRESENT");
-              }
-            }
-          } else {
-            privateArgs = possiblePrivateArgs.get();
-          }
-
-          final ArrayList<String> privateFor = new ArrayList<>();
-          privateFor.addAll(
-            privateTransaction.getPrivateFor().get().stream()
-                .map(Bytes::toBase64String)
-                .collect(Collectors.toList()));
-          String[] recipients = new String[privateFor.size() + 1];
-          // recipients = [privateFrom, privateFor(0), privateFor(1), ...]
-          recipients[0] = privateTransaction.getPrivateFrom().toBase64String();
-          for(int i = 1; i < recipients.length; i++) {
-            recipients[i] = privateFor.get(i-1);
-          }
-          /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] recipients");
-          for(String item : recipients) {
-            /*LOG*/System.out.println(item);
-          }
-
-          // This derives to a communication Tessera2Tessera, where the privacy protocol is executed.
-          /*LOG*/System.out.println(">>> [PrivacyPrecompiledContract] extendedPrivacySend");
-          /*LOG*/System.out.println(privateArgs.toHexString());
-          ExtendedPrivacyResponse extResponse = enclave.extendedPrivacySend(
-            extendedPrivacy.toArray(),
-            privateArgs.toArray(),
-            key.getBytes(Charset.defaultCharset()),
-            recipients
-          );
-          /*LOG*/System.out.println(" >>> [PrivacyPrecompiledContract] extResponse");
-          /*LOG*/System.out.println(Bytes.wrap(extResponse.getResult()).toHexString());
-          privateResult = Bytes.wrap(extResponse.getResult());
-        } else {
-          privateResult = Bytes.fromHexString("0x00");
-        }
+        privateResult = executePSI(privateTransaction, key, extendedPrivacy);
 
       }else{
-        /*LOG*/System.out.println(" >>> extendedPrivacy type: other");
-        privateArgs = Bytes.fromHexString("0x00");
         privateResult = Bytes.fromHexString("0x00");
       }
 
@@ -470,4 +404,76 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
 
     return true;
   }
+
+  private Bytes executePSI(final PrivateTransaction privateTransaction, final String key, final Bytes protocolId) {
+    
+    /*LOG*/System.out.println("[PrivacyPrecompiledContract] executePSI");
+
+    Bytes result = Bytes.fromHexString("0x00");
+    Bytes payload = privateTransaction.getPayload();
+    String functionSelector = payload.slice(0, 4).toHexString();
+
+    if(!privateTransaction.getTo().isPresent()) {
+      // PSI contract creation (LOAD)
+      result = functionPSILoad();
+    } else if(functionSelector.equals("0x12d48885")) {
+      // PSI (CONSUME)
+      result = functionPSIConsume(privateTransaction, key, protocolId);
+    } else {
+      /*LOG*/System.out.println("Function selector error");
+    }
+    
+    return result;
+  }
+
+  private Bytes functionPSILoad() {
+    /*LOG*/System.out.println("[PrivacyPrecompiledContract] functionPSILoad");
+    return Bytes.fromHexString("0x00");
+  }
+
+  private Bytes functionPSIConsume(final PrivateTransaction privateTransaction, final String key, final Bytes protocolId) {
+    /*LOG*/System.out.println("[PrivacyPrecompiledContract] functionPSIConsume");
+    Bytes privateArgs = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+    Optional<Bytes> possiblePrivateArgs = 
+            extendedPrivacyStorage.getPrivateArgs(Bytes.wrap(key.getBytes(Charset.forName("UTF-8"))));
+
+          if(!possiblePrivateArgs.isPresent()) {
+            Optional<Bytes> retrievedKey = 
+              extendedPrivacyStorage.getKeyByContractAddr(privateTransaction.getTo().get());
+            if(retrievedKey.isPresent()){
+              Optional<Bytes> privArgs = 
+                extendedPrivacyStorage.getPrivateArgs(retrievedKey.get());
+              if(privArgs.isPresent()) {
+                privateArgs = privArgs.get();
+              } else {
+                /*LOG*/System.out.println("[PrivacyPrecompiledContract] privateArgs NOT PRESENT");
+              }
+            }
+          } else {
+            privateArgs = possiblePrivateArgs.get();
+          }
+
+          final ArrayList<String> privateFor = new ArrayList<>();
+          privateFor.addAll(
+            privateTransaction.getPrivateFor().get().stream()
+                .map(Bytes::toBase64String)
+                .collect(Collectors.toList()));
+          String[] recipients = new String[privateFor.size() + 1];
+          // recipients = [privateFrom, privateFor(0), privateFor(1), ...]
+          recipients[0] = privateTransaction.getPrivateFrom().toBase64String();
+          for(int i = 1; i < recipients.length; i++) {
+            recipients[i] = privateFor.get(i-1);
+          }
+
+          // This derives to a communication Tessera2Tessera, where the privacy protocol is executed.
+          ExtendedPrivacyResponse extResponse = enclave.extendedPrivacySend(
+            protocolId.toArray(),
+            privateArgs.toArray(),
+            key.getBytes(Charset.defaultCharset()),
+            recipients
+          );
+          
+          return Bytes.wrap(extResponse.getResult());
+  }
+
 }
