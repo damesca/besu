@@ -45,7 +45,7 @@ public class EnclaveFactory {
     final RequestTransmitter vertxTransmitter =
         new VertxRequestTransmitter(vertx.createHttpClient(clientOptions));
 
-    return new Enclave(vertxTransmitter);
+    return new Enclave(vertxTransmitter, enclaveUri);
   }
 
   public Enclave createVertxEnclave(
@@ -61,7 +61,7 @@ public class EnclaveFactory {
     final RequestTransmitter vertxTransmitter =
         new VertxRequestTransmitter(vertx.createHttpClient(clientOptions));
 
-    return new Enclave(vertxTransmitter);
+    return new Enclave(vertxTransmitter, enclaveUri);
   }
 
   public GoQuorumEnclave createGoQuorumEnclave(final URI enclaveUri) {

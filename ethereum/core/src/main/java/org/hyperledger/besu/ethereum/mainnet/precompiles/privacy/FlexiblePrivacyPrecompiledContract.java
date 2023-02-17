@@ -66,12 +66,14 @@ public class FlexiblePrivacyPrecompiledContract extends PrivacyPrecompiledContra
       Subscribers.create();
 
   public FlexiblePrivacyPrecompiledContract(
+      final String enclaveKey,
       final GasCalculator gasCalculator,
       final Enclave enclave,
       final WorldStateArchive worldStateArchive,
       final PrivateStateRootResolver privateStateRootResolver,
       final PrivateStateGenesisAllocator privateStateGenesisAllocator) {
     super(
+        enclaveKey,
         gasCalculator,
         enclave,
         worldStateArchive,
@@ -81,8 +83,10 @@ public class FlexiblePrivacyPrecompiledContract extends PrivacyPrecompiledContra
   }
 
   public FlexiblePrivacyPrecompiledContract(
+    final String enclaveKey,
       final GasCalculator gasCalculator, final PrivacyParameters privacyParameters) {
     this(
+        enclaveKey,
         gasCalculator,
         privacyParameters.getEnclave(),
         privacyParameters.getPrivateWorldStateArchive(),

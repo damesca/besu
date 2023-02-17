@@ -32,9 +32,17 @@ import org.hyperledger.besu.enclave.types.ExtendedPrivacyResponse;
 import org.hyperledger.besu.psi.PsiTest;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.net.URI;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,9 +54,11 @@ public class Enclave {
   private static final String JSON = "application/json";
 
   private final RequestTransmitter requestTransmitter;
+  private final URI enclaveUri;
 
-  public Enclave(final RequestTransmitter requestTransmitter) {
+  public Enclave(final RequestTransmitter requestTransmitter, final URI enclaveUri) {
     this.requestTransmitter = requestTransmitter;
+    this.enclaveUri = enclaveUri;
   }
 
   public boolean upCheck() {
@@ -65,24 +75,56 @@ public class Enclave {
       final byte[] protocolId,
       final byte[] privateArgs,
       final byte[] pmt,
-      final String[] recipients) {
+      final String[] recipients,
+      final int server) {
     /*LOG*/System.out.println(" >>> [Enclave] sendExtendedPrivacyRequest()");
-    final ExtendedPrivacyRequest request = new ExtendedPrivacyRequest(protocolId, privateArgs, pmt, recipients);
-    ExtendedPrivacyResponse res = post(
-        JSON,
-        request,
-        "/extendedPrivacy",
-        (statusCode, body) -> handleJsonResponse(statusCode, body, ExtendedPrivacyResponse.class));
-    /*LOG*/System.out.println(">>> [Enclave] -> result: ");
-    /*LOG*/System.out.println(new String(res.getResult(), Charset.defaultCharset()));
+    //final ExtendedPrivacyRequest request = new ExtendedPrivacyRequest(protocolId, privateArgs, pmt, recipients);
+    //ExtendedPrivacyResponse res = post(
+    //    JSON,
+    //    request,
+    //    "/extendedPrivacy",
+    //    (statusCode, body) -> handleJsonResponse(statusCode, body, ExtendedPrivacyResponse.class));
+    //System.out.println(">>> [Enclave] -> result: ");
+    //System.out.println(new String(res.getResult(), Charset.defaultCharset()));
     
     // Section to test PSI Implementation
-    PsiTest psiTest = new PsiTest();
-    /*LOG*/System.out.println(psiTest.hello());
-    psiTest.setRpc(2, 5555);
-    /*LOG*/System.out.println(psiTest.getServerRpc());
-    /////////////////////
+    /*LOG*/System.out.println(enclaveUri.toString());
     
+    List<String> addresses = new ArrayList<String>();
+    for(String rec : recipients) {
+      addresses.add(rec);
+      /*LOG*/System.out.println(rec);
+    }
+    /*LOG*/System.out.println("PSI test");
+    PsiTest psiTest = new PsiTest(2, addresses, enclaveUri.toString());
+    Charset charset = Charset.forName("UTF-8");
+    CharsetEncoder encoder = charset.newEncoder();
+    if(server == 1){
+      /*LOG*/System.out.println("[Enclave] runPsiServer");
+      Set<ByteBuffer> serverSet = new HashSet<ByteBuffer>();
+      try{
+        serverSet.add(encoder.encode(CharBuffer.wrap("server1")));
+        serverSet.add(encoder.encode(CharBuffer.wrap("server2")));
+        serverSet.add(encoder.encode(CharBuffer.wrap("common1")));
+      }catch(CharacterCodingException e){
+        System.out.println("CharacterCodingException");
+      }
+      psiTest.runPsiServer(serverSet, 3);
+    }else{
+      /*LOG*/System.out.println("[Enclave] runPsiClient");
+      Set<ByteBuffer> clientSet = new HashSet<ByteBuffer>();
+      try{
+        clientSet.add(encoder.encode(CharBuffer.wrap("client1")));
+        clientSet.add(encoder.encode(CharBuffer.wrap("client2")));
+        clientSet.add(encoder.encode(CharBuffer.wrap("common1")));
+      }catch(CharacterCodingException e){
+        System.out.println("CharacterCodingException");
+      }
+      psiTest.runPsiClient(clientSet, 3);
+    }
+    
+    /////////////////////
+    ExtendedPrivacyResponse res = null;
     return res;
   }
 

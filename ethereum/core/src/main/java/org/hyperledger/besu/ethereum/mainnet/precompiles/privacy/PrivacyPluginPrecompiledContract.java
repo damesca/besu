@@ -38,9 +38,12 @@ public class PrivacyPluginPrecompiledContract extends PrivacyPrecompiledContract
   private final PrivacyParameters privacyParameters;
 
   public PrivacyPluginPrecompiledContract(
+    final String enclaveKey,
       final GasCalculator gasCalculator, final PrivacyParameters privacyParameters) {
-    super(gasCalculator, privacyParameters, "PluginPrivacy");
+    super(enclaveKey,gasCalculator, privacyParameters, "PluginPrivacy");
     this.privacyParameters = privacyParameters;
+    /*LOG*/System.out.println("[PrivacyPluginPrecompiledContract]");
+    /*LOG*/System.out.println(enclaveKey);
   }
 
   @Override

@@ -55,6 +55,7 @@ import org.hyperledger.besu.evm.worldstate.WorldState;
 import org.hyperledger.besu.evm.worldstate.WorldUpdater;
 import org.hyperledger.besu.plugin.data.Hash;
 
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -75,14 +76,17 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   PrivateTransactionProcessor privateTransactionProcessor;
 
   private final ExtendedPrivacyStorage extendedPrivacyStorage;
+  private final String enclaveKey;
 
   private static final Logger LOG = LoggerFactory.getLogger(PrivacyPrecompiledContract.class);
 
   public PrivacyPrecompiledContract(
+      final String enclaveKey,
       final GasCalculator gasCalculator,
       final PrivacyParameters privacyParameters,
       final String name) {
     this(
+        enclaveKey,
         gasCalculator,
         privacyParameters.getEnclave(),
         privacyParameters.getPrivateWorldStateArchive(),
@@ -93,6 +97,7 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   }
 
   protected PrivacyPrecompiledContract(
+    final String enclaveKey,
     final GasCalculator gasCalculator,
     final Enclave enclave,
     final WorldStateArchive worldStateArchive,
@@ -105,9 +110,11 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   this.privateStateRootResolver = privateStateRootResolver;
   this.privateStateGenesisAllocator = privateStateGenesisAllocator;
   this.extendedPrivacyStorage = null;
+  this.enclaveKey = enclaveKey;
 }
 
   protected PrivacyPrecompiledContract(
+      final String enclaveKey,
       final GasCalculator gasCalculator,
       final Enclave enclave,
       final WorldStateArchive worldStateArchive,
@@ -121,6 +128,7 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
     this.privateStateRootResolver = privateStateRootResolver;
     this.privateStateGenesisAllocator = privateStateGenesisAllocator;
     this.extendedPrivacyStorage = extendedPrivacyStorage;
+    this.enclaveKey = enclaveKey;
   }
 
   public void setPrivateTransactionProcessor(
@@ -432,6 +440,17 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
   }
 
   private Bytes functionPSIConsume(final PrivateTransaction privateTransaction, final String key, final Bytes protocolId) {
+    
+    // EnclaveKey to distinguish client and server
+    Base64.Decoder decoder = Base64.getDecoder();
+    byte[] decoded = decoder.decode(enclaveKey);
+    String hexEnclaveKey = "0x" + String.format("%040x", new BigInteger(1, decoded));
+
+    int server = 0;
+    if(hexEnclaveKey.equals(privateTransaction.getPrivateFrom().toHexString())) {
+      server = 1;
+    }
+    
     /*LOG*/System.out.println("[PrivacyPrecompiledContract] functionPSIConsume");
     Bytes privateArgs = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
     Optional<Bytes> possiblePrivateArgs = 
@@ -458,19 +477,26 @@ public class PrivacyPrecompiledContract extends AbstractPrecompiledContract {
             privateTransaction.getPrivateFor().get().stream()
                 .map(Bytes::toBase64String)
                 .collect(Collectors.toList()));
+
+          // Formato de la variable recipients = [privateFrom, privateFor(0), privateFor(1), ...]
           String[] recipients = new String[privateFor.size() + 1];
-          // recipients = [privateFrom, privateFor(0), privateFor(1), ...]
           recipients[0] = privateTransaction.getPrivateFrom().toBase64String();
           for(int i = 1; i < recipients.length; i++) {
             recipients[i] = privateFor.get(i-1);
           }
 
-          // This derives to a communication Tessera2Tessera, where the privacy protocol is executed.
+          //String[] recipients = new String[privateFor.size()];
+          //for(int i = 0; i < recipients.length; i++){
+          //  recipients[i] = privateFor.get(i);
+          //}
+
+          // This derives to the protocol execution
           ExtendedPrivacyResponse extResponse = enclave.extendedPrivacySend(
             protocolId.toArray(),
             privateArgs.toArray(),
             key.getBytes(Charset.defaultCharset()),
-            recipients
+            recipients,
+            server
           );
           
           return Bytes.wrap(extResponse.getResult());

@@ -21,5 +21,11 @@ repositories {
 }
 
 dependencies {
-    implementation files('/home/daniel/mpc4j-gradle/mpc4j-s2pc-pso/target/mpc4j-s2pc-pso-1.0.4-jar-with-dependencies.jar')
+    implementation 'org.apache.commons:commons-lang3:3.9'
+    implementation 'org.json:json:20180130'
+    implementation files('/home/daniel/mpc4j-mod/mpc4j-s2pc-pso/target/mpc4j-s2pc-pso-1.0.4.jar')
+    implementation files('/home/daniel/mpc4j-mod/mpc4j-common-rpc/target/mpc4j-common-rpc-1.0.4.jar')
+    implementation files('/home/daniel/mpc4j-mod/mpc4j-common-tool/target/mpc4j-common-tool-1.0.4.jar')
+    implementation files('/home/daniel/mpc4j-mod/mpc4j-s2pc-pcg/target/mpc4j-s2pc-pcg-1.0.4.jar')
+    implementation files('/home/daniel/mpc4j-mod/mpc4j-s2pc-aby/target/mpc4j-s2pc-aby-1.0.4.jar')
 }

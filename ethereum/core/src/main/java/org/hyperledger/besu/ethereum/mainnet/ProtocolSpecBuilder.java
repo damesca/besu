@@ -158,8 +158,10 @@ public class ProtocolSpecBuilder {
           final PrecompileContractRegistry registry =
               precompileContractRegistryBuilder.apply(precompiledContractConfiguration);
           if (precompiledContractConfiguration.getPrivacyParameters().isEnabled()) {
+            // This is the base64 encoding of the Tessera node's public key
+            String enclaveKey = privacyParameters.getPrivacyUserId();
             MainnetPrecompiledContractRegistries.appendPrivacy(
-                registry, precompiledContractConfiguration);
+                registry, precompiledContractConfiguration, enclaveKey);
           }
           MainnetPrecompiledContractRegistries.appendPsi(
                 registry, precompiledContractConfiguration);

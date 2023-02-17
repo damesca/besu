@@ -65,7 +65,8 @@ public abstract class MainnetPrecompiledContractRegistries {
 
   static void appendPrivacy(
       final PrecompileContractRegistry registry,
-      final PrecompiledContractConfiguration precompiledContractConfiguration) {
+      final PrecompiledContractConfiguration precompiledContractConfiguration,
+      final String enclaveKey) {
 
     if (!precompiledContractConfiguration.getPrivacyParameters().isEnabled()) {
       return;
@@ -75,23 +76,32 @@ public abstract class MainnetPrecompiledContractRegistries {
       registry.put(
           PLUGIN_PRIVACY,
           new PrivacyPluginPrecompiledContract(
+              enclaveKey,
               precompiledContractConfiguration.getGasCalculator(),
               precompiledContractConfiguration.getPrivacyParameters()));
+      /*LOG*/System.out.println("[MainnetPrecompiledContractRegistries] PLUGIN_PRIVACY");
+      /*LOG*/System.out.println(enclaveKey);
     } else if (precompiledContractConfiguration
         .getPrivacyParameters()
         .isFlexiblePrivacyGroupsEnabled()) {
       registry.put(
           FLEXIBLE_PRIVACY,
           new FlexiblePrivacyPrecompiledContract(
+              enclaveKey,
               precompiledContractConfiguration.getGasCalculator(),
               precompiledContractConfiguration.getPrivacyParameters()));
+      /*LOG*/System.out.println("[MainnetPrecompiledContractRegistries] FLEXIBLE_PRIVACY");
+      /*LOG*/System.out.println(enclaveKey);
     } else {
       registry.put(
           DEFAULT_PRIVACY,
           new PrivacyPrecompiledContract(
+              enclaveKey,
               precompiledContractConfiguration.getGasCalculator(),
               precompiledContractConfiguration.getPrivacyParameters(),
               "Privacy"));
+      /*LOG*/System.out.println("[MainnetPrecompiledContractRegistries] DEFAULT_PRIVACY");
+      /*LOG*/System.out.println(enclaveKey);
     }
   }
 
